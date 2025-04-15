@@ -11,32 +11,88 @@ class RequestBimbinganPage extends StatefulWidget {
 
 class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
   final _formKey = GlobalKey<FormState>();
-  String keperluan = '';
-  String deskripsi = '';
-  DateTime? selectedDate;
+  String _keperluan = '';
+  String _deskripsi = '';
+  DateTime? _selectedDate;
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || selectedDate == null) return;
+    if (!_formKey.currentState!.validate() || _selectedDate == null) return;
     _formKey.currentState!.save();
 
     final success = await BimbinganService.create(
-      keperluan: keperluan,
-      deskripsi: deskripsi,
-      rencanaBimbingan: selectedDate!.toUtc().toIso8601String(),
+      keperluan: _keperluan,
+      deskripsi: _deskripsi,
+      rencanaBimbingan: _selectedDate!.toUtc().toIso8601String(),
     );
 
     if (success) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Berhasil'),
-          content: const Text('Request bimbingan berhasil dikirim.'),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                color: Colors.green.shade400,
+                size: 30,
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Berhasil!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Permintaan bimbingan Anda berhasil dikirim.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(
+                    Icons.thumb_up_alt,
+                    color: Colors.green.shade400,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Bimbingan Anda akan segera diproses.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black45,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.pop(context, true); // Close page and return
+                Navigator.of(context).pop();
+                Navigator.pop(context, true);
               },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green.shade400,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               child: const Text('OK'),
             ),
           ],
@@ -44,7 +100,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengirim request')),
+        const SnackBar(content: Text('Gagal mengirim permintaan')),
       );
     }
   }
@@ -55,17 +111,51 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
       initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime(2030),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.lightBlue.shade300,
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.lightBlue.shade300, // button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (date == null) return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 10, minute: 0),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.lightBlue.shade300,
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.lightBlue.shade300, // button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (time == null) return;
 
     setState(() {
-      selectedDate = DateTime(
+      _selectedDate = DateTime(
         date.year,
         date.month,
         date.day,
@@ -78,88 +168,138 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vokasi Tera'), centerTitle: true),
+      backgroundColor: Colors.blueGrey.shade50,
+      appBar: AppBar(
+        title: const Text(
+          'Ajukan Bimbingan',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+        ),
+        backgroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black87),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(18.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Keperluan Bimbingan"),
-              const SizedBox(height: 6),
-              TextFormField(
-                decoration: const InputDecoration(
-                  hintText: 'Keperluan Bimbingan',
-                  border: OutlineInputBorder(),
-                ),
-                onSaved: (value) => keperluan = value ?? '',
-                validator: (value) =>
-                    (value == null || value.isEmpty) ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 16),
-              const Text("Rencana Bimbingan"),
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: _pickDateTime,
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    decoration: InputDecoration(
-                      hintText: 'dd/mm/yy',
-                      suffixIcon: const Icon(Icons.calendar_today),
-                      border: const OutlineInputBorder(),
-                    ),
-                    controller: TextEditingController(
-                      text: selectedDate != null
-                          ? DateFormat('dd-MM-yyyy HH:mm').format(selectedDate!)
-                          : '',
-                    ),
-                    validator: (_) =>
-                        selectedDate == null ? 'Wajib pilih tanggal' : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text("Deskripsi Bimbingan"),
-              const SizedBox(height: 6),
-              TextFormField(
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Diskusi PRS',
-                  border: OutlineInputBorder(),
-                ),
-                onSaved: (value) => deskripsi = value ?? '',
-                validator: (value) =>
-                    (value == null || value.isEmpty) ? 'Wajib diisi' : null,
-              ),
-              const SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          child: Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 2,
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.black),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(color: Colors.black)),
+                  _buildLabel("Keperluan Bimbingan"),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    decoration: _inputDecoration("Tulis keperluan bimbingan Anda"),
+                    onSaved: (value) => _keperluan = value ?? '',
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Keperluan wajib diisi' : null,
                   ),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                  const SizedBox(height: 16),
+                  _buildLabel("Rencana Tanggal & Waktu"),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _pickDateTime,
+                    child: AbsorbPointer(
+                      child: TextFormField(
+                        decoration: _inputDecoration("Pilih tanggal dan waktu", icon: Icons.calendar_today_outlined),
+                        controller: TextEditingController(
+                          text: _selectedDate != null
+                              ? DateFormat('dd-MM-yyyy HH:mm').format(_selectedDate!)
+                              : '',
+                        ),
+                        validator: (_) =>
+                            _selectedDate == null ? 'Tanggal dan waktu wajib dipilih' : null,
+                      ),
                     ),
-                    child: const Text('Request'),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildLabel("Deskripsi Tambahan (Opsional)"),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    maxLines: 3,
+                    decoration: _inputDecoration("Jelaskan lebih detail keperluan Anda"),
+                    onSaved: (value) => _deskripsi = value ?? '',
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey.shade600,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Batal'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.lightBlue.shade300,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 2,
+                        ),
+                        child: const Text('Ajukan'),
+                      ),
+                    ],
                   ),
                 ],
-              )
-            ],
+              ),
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: Colors.blueGrey.shade700,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint, {IconData? icon}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade400),
+      suffixIcon: icon != null ? Icon(icon, color: Colors.grey.shade400) : null,
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Colors.lightBlue.shade300),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
     );
   }

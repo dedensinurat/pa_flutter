@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.216.185:8080";
+  static const String baseUrl = "http://192.168.216.227:8080";
 
 static Future<Map<String, dynamic>> login(String username, String password) async {
   final url = Uri.parse("$baseUrl/login");
@@ -27,7 +27,7 @@ final response = await http.post(
 
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
-    final token = data['internal_token']; // GANTI DI SINI
+    final token = data['internal_token']; 
     final user = data['user'];
     final role = user?['role'];
     final username = user?['username'];

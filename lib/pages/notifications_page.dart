@@ -5,122 +5,120 @@ class NotificationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Header Gradient
-        Container(
-          height: 130,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFDDEEFF), Color(0xFFEEF4FF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-            ),
-          ),
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.only(top: 40),
-              child: Text(
-                'Vokasi Tera',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+    return Scaffold(
+      backgroundColor: Colors.blueGrey.shade50,
+      body: Stack(
+        children: [
+          // Blue Wavy Background
+          ClipPath(
+            clipper: WavyClipper(),
+            child: Container(
+              height: 125,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                   const Color(0xFF81D4FA).withOpacity(0.7), // Slightly darker top
+                    const Color(0xFFB3E5FC).withOpacity(0.5), // Match the lighter submit box
+                  ],
                 ),
               ),
             ),
           ),
-        ),
 
-        // Divider
-        Container(
-          height: 1,
-          color: Colors.grey.withOpacity(0.2),
-        ),
+          // App Bar
+          AppBar(
+            title: const Text(
+              'Vokasi Tera',
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20, color: Colors.black87),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Color.fromARGB(221, 254, 254, 57)),
+          ),
 
-        // Content
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Notification',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          // Content
+          Padding(
+            padding: const EdgeInsets.only(top: 100.0), // Adjust top padding
+            child: Padding( // Remove the extra Padding Widget
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Notification',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Text(
-                      'Utama',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'new',
-                        style: TextStyle(color: Colors.white, fontSize: 10),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView(
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      _buildNotificationCard(
-                        logoAsset: 'assets/logo.jpg',
-                        sender: 'VokasiTera',
-                        time: 'now',
-                        date: '2 Feb',
-                        title: 'Hi Anastassia!',
-                        message:
-                            'Jadwal seminar sudah diupload silahkan lihat jadwal seminar anda!!!',
+                      const Text(
+                        'Utama',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                      _buildNotificationCard(
-                        logoAsset: 'assets/logo.jpg',
-                        sender: 'VokasiTera',
-                        time: 'now',
-                        date: '1 Jan',
-                        title: 'Hi Anastassia!',
-                        message:
-                            'Jadwal seminar sudah diupload silahkan lihat jadwal seminar anda!!!',
-                        showDot: true,
-                      ),
-                      _buildNotificationCard(
-                        logoAsset: 'assets/logo.jpg',
-                        sender: 'VokasiTera',
-                        time: 'now',
-                        date: '1/12/2025',
-                        title: 'Hi Anastassia!',
-                        message:
-                            'Jadwal seminar sudah diupload silahkan lihat jadwal seminar anda!!!',
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'new',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        _buildNotificationCard(
+                          logoAsset: 'assets/logo.jpg',
+                          sender: 'VokasiTera',
+                          time: 'now',
+                          date: '2 Feb',
+                          title: 'Hi Anastassia!',
+                          message:
+                              'Jadwal seminar sudah diupload silahkan lihat jadwal seminar anda!!!',
+                        ),
+                        _buildNotificationCard(
+                          logoAsset: 'assets/logo.jpg',
+                          sender: 'VokasiTera',
+                          time: 'now',
+                          date: '1 Jan',
+                          title: 'Hi Anastassia!',
+                          message:
+                              'Jadwal seminar sudah diupload silahkan lihat jadwal seminar anda!!!',
+                          showDot: true,
+                        ),
+                        _buildNotificationCard(
+                          logoAsset: 'assets/logo.jpg',
+                          sender: 'VokasiTera',
+                          time: 'now',
+                          date: '1/12/2025',
+                          title: 'Hi Anastassia!',
+                          message:
+                              'Jadwal seminar sudah diupload silahkan lihat jadwal seminar anda!!!',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -196,3 +194,31 @@ class NotificationPage extends StatelessWidget {
     );
   }
 }
+
+// Custom Clipper for Wavy Background
+class WavyClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 20);
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2.25, size.height - 15);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
+        firstEndPoint.dx, firstEndPoint.dy);
+    var secondControlPoint =
+        Offset(size.width - (size.width / 3.25), size.height - 45);
+    var secondEndPoint = Offset(size.width, size.height - 20);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
+        secondEndPoint.dx, secondEndPoint.dy);
+    path.lineTo(size.width, 0);
+    path.lineTo(0, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
+    return false;
+  }
+}
+

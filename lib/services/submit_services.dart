@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/submit_model.dart';
 
 class SubmitService {
-  static const String baseUrl = "http://192.168.216.185:8080";
+  static const String baseUrl = "http://192.168.216.227:8080";
 
   static Future<List<Submit>> fetchSubmits() async {
     final prefs = await SharedPreferences.getInstance();
