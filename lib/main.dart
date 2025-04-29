@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // <--- Tambahkan ini
+import 'package:flutter_artefak/providers/language_provider.dart';
 import 'package:flutter_artefak/login.dart';
 import 'pages/home_page.dart';
 import 'pages/bimbingan_page.dart';
 import 'pages/notifications_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/artefak/dokumen_pengembangan_page.dart';
-import 'pages/artefak/upload_page.dart';
+// import 'pages/artefak/upload_page.dart';
 import 'widgets/bottom_navbar.dart';
+import 'package:flutter_artefak/providers/theme_provider.dart';
+
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -17,15 +29,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'VokasiTera',
-      home: const LoginPage(), // LANGSUNG KE LOGIN
-      routes: {
-        '/login':(context) => const LoginPage(),
-        '/main': (context) => const MainScreen(),
-        '/upload': (context) => FileUploadScreen(),
-        '/dokumen': (context) => const DokumenPengembanganPage(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'VokasiTera',
+          theme: themeProvider.themeData,
+          home: const LoginPage(), // LANGSUNG KE LOGIN
+          routes: {
+            '/login': (context) => const LoginPage(),
+            '/main': (context) => const MainScreen(),
+            // '/upload': (context) => FileUploadScreen(),
+            '/dokumen': (context) => const DokumenPengembanganPage(),
+          },
+        );
       },
     );
   }

@@ -1,28 +1,40 @@
 class Submit {
-  final int submitId;
+  final int id;
   final String judul;
   final String instruksi;
-  final String file;
   final String batas;
+  final String file;
   final int userId;
+  final String status;
+  final String prodi;
+  final String kategoriPa;
+  final String tahunAjaran;
 
   Submit({
-    required this.submitId,
+    required this.id,
     required this.judul,
     required this.instruksi,
-    required this.file,
     required this.batas,
+    required this.file,
     required this.userId,
+    required this.status,
+    required this.prodi,
+    required this.kategoriPa,
+    required this.tahunAjaran,
   });
 
   factory Submit.fromJson(Map<String, dynamic> json) {
     return Submit(
-      submitId: json['submit_id'],
+      id: json['id'],
       judul: json['judul'],
       instruksi: json['instruksi'],
-      file: json['file'],
       batas: json['batas'],
-      userId: json['user_id'],
+      file: json['file'] ?? '',
+      userId: json['userId'],
+      status: json['status'],
+      prodi: json['prodi'],
+      kategoriPa: json['kategori_pa'],
+      tahunAjaran: json['tahun_ajaran'],
     );
   }
 }

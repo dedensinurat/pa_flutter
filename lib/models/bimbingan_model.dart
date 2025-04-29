@@ -1,25 +1,43 @@
 class Bimbingan {
-  final int bimbinganId;
+  final int id;
+  final int kelompokId;
+  final int userId;
   final String keperluan;
-  final String deskripsi;
-  final DateTime rencanaBimbingan;
+  final DateTime rencanaMulai;
+  final DateTime rencanaSelesai;
+  final String lokasi;
   final String status;
 
   Bimbingan({
-    required this.bimbinganId,
+    required this.id,
+    required this.kelompokId,
+    required this.userId,
     required this.keperluan,
-    required this.deskripsi,
-    required this.rencanaBimbingan,
+    required this.rencanaMulai,
+    required this.rencanaSelesai,
+    required this.lokasi,
     required this.status,
   });
 
   factory Bimbingan.fromJson(Map<String, dynamic> json) {
     return Bimbingan(
-      bimbinganId: json['bimbingan_id'],
+      id: json['id'],
+      kelompokId: json['kelompok_id'],
+      userId: json['user_id'],
       keperluan: json['keperluan'],
-      deskripsi: json['deskripsi'],
-      rencanaBimbingan: DateTime.parse(json['rencana_bimbingan']),
+      rencanaMulai: DateTime.parse(json['rencana_mulai']),
+      rencanaSelesai: DateTime.parse(json['rencana_selesai']),
+      lokasi: json['lokasi'],
       status: json['status'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'keperluan': keperluan,
+      'rencana_mulai': rencanaMulai.toIso8601String(),
+      'rencana_selesai': rencanaSelesai.toIso8601String(),
+      'lokasi': lokasi,
+    };
   }
 }

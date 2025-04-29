@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_artefak/services/bimbingan_services.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_artefak/providers/theme_provider.dart';
+import 'package:flutter_artefak/providers/language_provider.dart';
+import 'dart:ui';
 
 class RequestBimbinganPage extends StatefulWidget {
   const RequestBimbinganPage({super.key});
@@ -9,119 +13,182 @@ class RequestBimbinganPage extends StatefulWidget {
   State<RequestBimbinganPage> createState() => _RequestBimbinganPageState();
 }
 
-class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
+class _RequestBimbinganPageState extends State<RequestBimbinganPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  String _keperluan = '';
-  String _deskripsi = '';
-  DateTime? _selectedDate;
+  DateTime? _rencanaMulai;
+  DateTime? _rencanaSelesai;
+
+  final _keperluanController = TextEditingController();
+  final _lokasiController = TextEditingController();
+  final _deskripsiController = TextEditingController();
+  
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Setup animations
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOut,
+      ),
+    );
+    
+    // Start animation after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _animationController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _keperluanController.dispose();
+    _lokasiController.dispose();
+    _deskripsiController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _selectedDate == null) return;
-    _formKey.currentState!.save();
-
-    final success = await BimbinganService.create(
-      keperluan: _keperluan,
-      deskripsi: _deskripsi,
-      rencanaBimbingan: _selectedDate!.toUtc().toIso8601String(),
-    );
-
-    if (success) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.check_circle_outline,
-                color: Colors.green.shade400,
-                size: 30,
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Berhasil!',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Permintaan bimbingan Anda berhasil dikirim.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(
-                    Icons.thumb_up_alt,
-                    color: Colors.green.shade400,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Bimbingan Anda akan segera diproses.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black45,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pop(context, true);
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.green.shade400,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('OK'),
-            ),
-          ],
+    if (!_formKey.currentState!.validate() || _rencanaMulai == null || _rencanaSelesai == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Lengkapi semua field yang wajib'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: const Color(0xFFE53E3E),
         ),
       );
-    } else {
+      return;
+    }
+
+    if (_rencanaSelesai!.isBefore(_rencanaMulai!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengirim permintaan')),
+        SnackBar(
+          content: const Text('Waktu selesai harus setelah waktu mulai'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: const Color(0xFFE53E3E),
+        ),
       );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final success = await BimbinganService.create(
+        keperluan: _keperluanController.text,
+        rencanaMulai: _rencanaMulai!.toUtc(), // ⬅️ penting: kirim dalam UTC
+        rencanaSelesai: _rencanaSelesai!.toUtc(),
+        lokasi: _lokasiController.text,
+      );
+
+      if (success) {
+        final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+        
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            backgroundColor: themeProvider.isDarkMode 
+                ? const Color(0xFF2D3748) 
+                : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6FFFA),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_circle_outline, color: Color(0xFF38B2AC), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Berhasil!', 
+                  style: TextStyle(
+                    fontSize: 20, 
+                    fontWeight: FontWeight.bold,
+                    color: themeProvider.isDarkMode 
+                        ? Colors.white 
+                        : const Color(0xFF2D3748),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Permintaan bimbingan berhasil dikirim.',
+              style: TextStyle(
+                color: themeProvider.isDarkMode 
+                    ? Colors.white.withOpacity(0.7) 
+                    : const Color(0xFF4A5568),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pop(context, true);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF4299E1),
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gagal mengirim permintaan'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            backgroundColor: const Color(0xFFE53E3E),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
     }
   }
 
   Future<void> _pickDateTime() async {
-    final date = await showDatePicker(
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    
+    final dateMulai = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime(2030),
-      builder: (BuildContext context, Widget? child) {
+      builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: Colors.lightBlue.shade300,
+              primary: const Color(0xFF4299E1),
               onPrimary: Colors.white,
-              onSurface: Colors.black87,
+              onSurface: themeProvider.isDarkMode 
+                  ? Colors.white 
+                  : const Color(0xFF2D3748),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Colors.lightBlue.shade300, // button text color
+                foregroundColor: const Color(0xFF4299E1),
               ),
             ),
           ),
@@ -129,22 +196,24 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
         );
       },
     );
-    if (date == null) return;
+    if (dateMulai == null) return;
 
-    final time = await showTimePicker(
+    final timeMulai = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 10, minute: 0),
-      builder: (BuildContext context, Widget? child) {
+      builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: Colors.lightBlue.shade300,
+              primary: const Color(0xFF4299E1),
               onPrimary: Colors.white,
-              onSurface: Colors.black87,
+              onSurface: themeProvider.isDarkMode 
+                  ? Colors.white 
+                  : const Color(0xFF2D3748),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Colors.lightBlue.shade300, // button text color
+                foregroundColor: const Color(0xFF4299E1),
               ),
             ),
           ),
@@ -152,154 +221,510 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> {
         );
       },
     );
-    if (time == null) return;
+    if (timeMulai == null) return;
+
+    final dateSelesai = await showDatePicker(
+      context: context,
+      initialDate: dateMulai,
+      firstDate: dateMulai,
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFF4299E1),
+              onPrimary: Colors.white,
+              onSurface: themeProvider.isDarkMode 
+                  ? Colors.white 
+                  : const Color(0xFF2D3748),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF4299E1),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (dateSelesai == null) return;
+
+    final timeSelesai = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 12, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFF4299E1),
+              onPrimary: Colors.white,
+              onSurface: themeProvider.isDarkMode 
+                  ? Colors.white 
+                  : const Color(0xFF2D3748),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF4299E1),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (timeSelesai == null) return;
 
     setState(() {
-      _selectedDate = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
+      _rencanaMulai = DateTime(dateMulai.year, dateMulai.month, dateMulai.day, timeMulai.hour, timeMulai.minute);
+      _rencanaSelesai = DateTime(dateSelesai.year, dateSelesai.month, dateSelesai.day, timeSelesai.hour, timeSelesai.minute);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blueGrey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          'Ajukan Bimbingan',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    
+    final dateTimeFormat = (_rencanaMulai != null && _rencanaSelesai != null)
+        ? '${DateFormat('dd-MM-yyyy HH:mm').format(_rencanaMulai!)} - ${DateFormat('HH:mm').format(_rencanaSelesai!)}'
+        : '';
+
+    return Theme(
+      data: themeProvider.themeData,
+      child: Scaffold(
+        backgroundColor: themeProvider.isDarkMode 
+            ? const Color(0xFF1A202C) 
+            : const Color(0xFFF5F7FA),
+        appBar: AppBar(
+          title: Text(
+            'Ajukan Bimbingan',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: themeProvider.isDarkMode 
+                  ? Colors.white 
+                  : const Color(0xFF2D3748),
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: themeProvider.isDarkMode 
+              ? const Color(0xFF2D3748) 
+              : Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back, 
+              color: themeProvider.isDarkMode 
+                  ? Colors.white 
+                  : const Color(0xFF2D3748),
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        backgroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18.0),
-        child: Form(
-          key: _formKey,
-          child: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 2,
-            color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLabel("Keperluan Bimbingan"),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    decoration: _inputDecoration("Tulis keperluan bimbingan Anda"),
-                    onSaved: (value) => _keperluan = value ?? '',
-                    validator: (value) =>
-                        (value == null || value.isEmpty) ? 'Keperluan wajib diisi' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildLabel("Rencana Tanggal & Waktu"),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _pickDateTime,
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        decoration: _inputDecoration("Pilih tanggal dan waktu", icon: Icons.calendar_today_outlined),
-                        controller: TextEditingController(
-                          text: _selectedDate != null
-                              ? DateFormat('dd-MM-yyyy HH:mm').format(_selectedDate!)
-                              : '',
-                        ),
-                        validator: (_) =>
-                            _selectedDate == null ? 'Tanggal dan waktu wajib dipilih' : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildLabel("Deskripsi Tambahan (Opsional)"),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    maxLines: 3,
-                    decoration: _inputDecoration("Jelaskan lebih detail keperluan Anda"),
-                    onSaved: (value) => _deskripsi = value ?? '',
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+        body: Stack(
+          children: [
+            // Background decoration
+            Positioned(
+              top: -100,
+              right: -100,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF4299E1).withOpacity(0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -50,
+              left: -50,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF4299E1).withOpacity(0.05),
+                ),
+              ),
+            ),
+            
+            // Main content
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey.shade600,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      // Header
+                      Text(
+                        'Formulir Bimbingan',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: themeProvider.isDarkMode 
+                              ? Colors.white 
+                              : const Color(0xFF2D3748),
                         ),
-                        child: const Text('Batal'),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightBlue.shade300,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          elevation: 2,
+                      const SizedBox(height: 8),
+                      Text(
+                        'Silakan lengkapi formulir di bawah ini untuk mengajukan bimbingan dengan dosen.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: themeProvider.isDarkMode 
+                              ? Colors.white.withOpacity(0.7) 
+                              : const Color(0xFF718096),
                         ),
-                        child: const Text('Ajukan'),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Form Card
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode 
+                              ? const Color(0xFF2D3748) 
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Keperluan Field
+                            _buildFormLabel('Keperluan Bimbingan', true),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              controller: _keperluanController,
+                              hintText: 'Tulis keperluan bimbingan Anda',
+                              icon: Icons.subject,
+                              validator: (value) => value!.isEmpty ? 'Keperluan wajib diisi' : null,
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // Date Time Field
+                            _buildFormLabel('Rencana Tanggal & Waktu', true),
+                            const SizedBox(height: 8),
+                            _buildDateTimePicker(dateTimeFormat),
+                            const SizedBox(height: 24),
+                            
+                            // Lokasi Field
+                            _buildFormLabel('Lokasi Bimbingan', true),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              controller: _lokasiController,
+                              hintText: 'Tulis lokasi bimbingan',
+                              icon: Icons.location_on,
+                              validator: (value) => value!.isEmpty ? 'Lokasi wajib diisi' : null,
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // Deskripsi Field (Optional)
+                            _buildFormLabel('Deskripsi Tambahan', false),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              controller: _deskripsiController,
+                              hintText: 'Jelaskan lebih detail keperluan Anda (opsional)',
+                              icon: Icons.description,
+                              maxLines: 3,
+                            ),
+                            const SizedBox(height: 32),
+                            
+                            // Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildOutlinedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    text: 'Batal',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildElevatedButton(
+                                    onPressed: _isSubmitting ? null : _submit,
+                                    text: _isSubmitting ? 'Mengirim...' : 'Ajukan',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Info Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode 
+                              ? const Color(0xFF2C5282).withOpacity(0.2) 
+                              : const Color(0xFFEBF8FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: themeProvider.isDarkMode 
+                                ? const Color(0xFF4299E1).withOpacity(0.5) 
+                                : const Color(0xFF90CDF4),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: themeProvider.isDarkMode 
+                                    ? const Color(0xFF2D3748) 
+                                    : Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.info_outline,
+                                color: Color(0xFF4299E1),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Informasi',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: themeProvider.isDarkMode 
+                                          ? const Color(0xFF90CDF4) 
+                                          : const Color(0xFF2C5282),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Permintaan bimbingan akan dikirim ke dosen dan menunggu persetujuan.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: themeProvider.isDarkMode 
+                                          ? Colors.white.withOpacity(0.8) 
+                                          : const Color(0xFF2A4365),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
+  Widget _buildFormLabel(String label, bool isRequired) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: themeProvider.isDarkMode 
+                ? Colors.white.withOpacity(0.7) 
+                : const Color(0xFF4A5568),
+          ),
+        ),
+        const SizedBox(width: 4),
+        if (isRequired)
+          const Text(
+            '*',
+            style: TextStyle(
+              color: Color(0xFFE53E3E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: themeProvider.isDarkMode 
+              ? Colors.white.withOpacity(0.3) 
+              : const Color(0xFFA0AEC0),
+          fontSize: 14,
+        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF4299E1), size: 20),
+        filled: true,
+        fillColor: themeProvider.isDarkMode 
+            ? const Color(0xFF1A202C) 
+            : const Color(0xFFF7FAFC),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: themeProvider.isDarkMode 
+                ? const Color(0xFF4A5568) 
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF4299E1), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+        ),
+      ),
       style: TextStyle(
         fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: Colors.blueGrey.shade700,
+        color: themeProvider.isDarkMode 
+            ? Colors.white 
+            : const Color(0xFF2D3748),
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _buildDateTimePicker(String dateTimeFormat) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    
+    return GestureDetector(
+      onTap: _pickDateTime,
+      child: AbsorbPointer(
+        child: TextFormField(
+          decoration: InputDecoration(
+            hintText: 'Pilih tanggal dan waktu',
+            hintStyle: TextStyle(
+              color: themeProvider.isDarkMode 
+                  ? Colors.white.withOpacity(0.3) 
+                  : const Color(0xFFA0AEC0),
+              fontSize: 14,
+            ),
+            prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF4299E1), size: 20),
+            suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4299E1)),
+            filled: true,
+            fillColor: themeProvider.isDarkMode 
+                ? const Color(0xFF1A202C) 
+                : const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: themeProvider.isDarkMode 
+                    ? const Color(0xFF4A5568) 
+                    : const Color(0xFFE2E8F0),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4299E1), width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+            ),
+          ),
+          controller: TextEditingController(text: dateTimeFormat),
+          style: TextStyle(
+            fontSize: 14,
+            color: themeProvider.isDarkMode 
+                ? Colors.white 
+                : const Color(0xFF2D3748),
+          ),
+          validator: (_) => (_rencanaMulai == null || _rencanaSelesai == null)
+              ? 'Tanggal dan waktu wajib dipilih'
+              : null,
+        ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint, {IconData? icon}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400),
-      suffixIcon: icon != null ? Icon(icon, color: Colors.grey.shade400) : null,
-      filled: true,
-      fillColor: Colors.grey.shade100,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
+  Widget _buildOutlinedButton({
+    required VoidCallback onPressed,
+    required String text,
+  }) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF4299E1),
+        side: const BorderSide(color: Color(0xFF4299E1)),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.lightBlue.shade300),
+    );
+  }
+
+  Widget _buildElevatedButton({
+    required VoidCallback? onPressed,
+    required String text,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF4299E1),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0,
       ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.redAccent),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Colors.redAccent),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
