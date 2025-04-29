@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bimbingan_model.dart';
 
 class BimbinganService {
-  static const String baseUrl = "http://172.30.41.179:8080";
+  static const String baseUrl = "http://172.27.81.96:8080";
 
   // Kirim request bimbingan baru
   static Future<bool> create({

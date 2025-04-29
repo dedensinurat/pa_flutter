@@ -3,9 +3,6 @@ import '../models/submit_model.dart';
 import '../services/submit_services.dart';
 import '../pages/submit_detail_page.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_artefak/providers/theme_provider.dart';
-import 'package:flutter_artefak/providers/language_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -17,10 +14,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late Future<List<Submit>> _futureSubmits;
   bool _isRefreshing = false;
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -115,262 +112,281 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Submitted':
+        return Colors.green;
+      case 'Resubmitted':
+        return Colors.blue;
+      case 'Late':
+        return Colors.orange;
+      case 'Belum':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'Submitted':
+        return 'Sudah Dikumpulkan';
+      case 'Resubmitted':
+        return 'Sudah Diperbarui';
+      case 'Late':
+        return 'Terlambat';
+      case 'Belum':
+        return 'Belum Dikumpulkan';
+      default:
+        return status;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final languageProvider = Provider.of<LanguageProvider>(context);
-    
-    return Theme(
-      data: themeProvider.themeData,
-      child: Scaffold(
-        backgroundColor: themeProvider.isDarkMode 
-            ? const Color(0xFF1A202C) 
-            : const Color(0xFFF5F7FA),
-        body: Stack(
-          children: [
-            // Enhanced Wavy Background
-            ClipPath(
-              clipper: EnhancedWavyClipper(),
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.25,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF4299E1),
-                      const Color(0xFF63B3ED),
-                      const Color(0xFF90CDF4).withOpacity(0.8),
-                    ],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Decorative elements
-                    Positioned(
-                      top: -20,
-                      left: -20,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 20,
-                      right: 20,
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
-                    ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: Stack(
+        children: [
+          // Enhanced Wavy Background
+          ClipPath(
+            clipper: EnhancedWavyClipper(),
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.25,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF4299E1),
+                    const Color(0xFF63B3ED),
+                    const Color(0xFF90CDF4).withOpacity(0.8),
                   ],
                 ),
               ),
-            ),
-
-            // App Bar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AppBar(
-                title: Text(
-                  languageProvider.translate('app_title'),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                    color: Colors.white,
+              child: Stack(
+                children: [
+                  // Decorative elements
+                  Positioned(
+                    top: -20,
+                    left: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
                   ),
-                ),
-                centerTitle: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                iconTheme: const IconThemeData(color: Colors.white),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Notifikasi akan segera hadir'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                  Positioned(
+                    bottom: 20,
+                    right: 20,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
+          ),
 
-            // Main Content
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 70.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Page Title
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Beranda',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Daftar tugas dan pengumpulan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Content Area
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode 
-                              ? const Color(0xFF1A202C) 
-                              : const Color(0xFFF5F7FA),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(30),
-                            topRight: Radius.circular(30),
-                          ),
-                        ),
-                        child: RefreshIndicator(
-                          onRefresh: _refreshData,
-                          color: const Color(0xFF4299E1),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header with search
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Tugas Terbaru',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: themeProvider.isDarkMode 
-                                            ? Colors.white 
-                                            : const Color(0xFF2D3748),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: themeProvider.isDarkMode 
-                                            ? const Color(0xFF2D3748) 
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.05),
-                                            blurRadius: 10,
-                                            spreadRadius: 0,
-                                          ),
-                                        ],
-                                      ),
-                                      child: IconButton(
-                                        icon: Icon(
-                                          Icons.search, 
-                                          color: themeProvider.isDarkMode 
-                                              ? Colors.white.withOpacity(0.7) 
-                                              : const Color(0xFF4A5568),
-                                        ),
-                                        onPressed: () {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Fitur pencarian akan segera hadir'),
-                                              behavior: SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        },
-                                        tooltip: 'Cari tugas',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 16),
-                                
-                                // Grid View
-                                Expanded(
-                                  child: FutureBuilder<List<Submit>>(
-                                    future: _futureSubmits,
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
-                                        return _buildLoadingState();
-                                      } else if (snapshot.hasError) {
-                                        return _buildErrorState(snapshot.error.toString());
-                                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                        return _buildEmptyState();
-                                      }
-                                      
-                                      final submits = snapshot.data!;
-                                      return FadeTransition(
-                                        opacity: _fadeAnimation,
-                                        child: GridView.builder(
-                                          controller: _scrollController,
-                                          physics: const BouncingScrollPhysics(),
-                                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
-                                            crossAxisSpacing: 16,
-                                            mainAxisSpacing: 16,
-                                            childAspectRatio: 0.85,
-                                          ),
-                                          itemCount: submits.length,
-                                          itemBuilder: (context, index) {
-                                            final submit = submits[index];
-                                            return _buildGridItem(context, submit, index);
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          // App Bar
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AppBar(
+              title: const Text(
+                'Vokasi Tera',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  color: Colors.white,
                 ),
               ),
+              centerTitle: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.white),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Notifikasi akan segera hadir'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+                    // Main Content
+                    SafeArea(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 70.0, bottom: 24.0),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: MediaQuery.of(context).size.height - 100,
+                            ),
+                            child: IntrinsicHeight(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Page Title
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Beranda',
+                                          style: TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Daftar tugas dan pengumpulan',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white.withOpacity(0.9),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Content Area
+                                  Container(
+                                    width: double.infinity,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFF5F7FA),
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(30),
+                                        topRight: Radius.circular(30),
+                                      ),
+                                    ),
+                                    child: RefreshIndicator(
+                                      onRefresh: _refreshData,
+                                      color: const Color(0xFF4299E1),
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Header with search
+                                            Row(
+                                              children: [
+                                                const Text(
+                                                  'Tugas Terbaru',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF2D3748),
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                                Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.05),
+                                                        blurRadius: 10,
+                                                        spreadRadius: 0,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: IconButton(
+                                                    icon: const Icon(Icons.search, color: Color(0xFF4A5568)),
+                                                    onPressed: () {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text('Fitur pencarian akan segera hadir'),
+                                                          behavior: SnackBarBehavior.floating,
+                                                        ),
+                                                      );
+                                                    },
+                                                    tooltip: 'Cari tugas',
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            const SizedBox(height: 16),
+
+                                            // GridView with fixed height
+                                            SizedBox(
+                                              height: MediaQuery.of(context).size.height * 0.6,
+                                              child: FutureBuilder<List<Submit>>(
+                                                future: _futureSubmits,
+                                                builder: (context, snapshot) {
+                                                  if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
+                                                    return _buildLoadingState();
+                                                  } else if (snapshot.hasError) {
+                                                    return _buildErrorState(snapshot.error.toString());
+                                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                                    return _buildEmptyState();
+                                                  }
+
+                                                  final submits = snapshot.data!;
+                                                  return FadeTransition(
+                                                    opacity: _fadeAnimation,
+                                                    child: GridView.builder(
+                                                      controller: _scrollController,
+                                                      physics: const BouncingScrollPhysics(),
+                                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                                        crossAxisCount: 2,
+                                                        crossAxisSpacing: 16,
+                                                        mainAxisSpacing: 16,
+                                                        childAspectRatio: 0.85,
+                                                      ),
+                                                      itemCount: submits.length,
+                                                      itemBuilder: (context, index) {
+                                                        final submit = submits[index];
+                                                        return _buildGridItem(context, submit, index);
+                                                      },
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+        ],
       ),
     );
   }
 
   Widget _buildLoadingState() {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -380,7 +396,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             height: 60,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode ? const Color(0xFF2D3748) : Colors.white,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -396,13 +412,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Memuat daftar tugas...',
             style: TextStyle(
               fontSize: 14,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF718096),
+              color: Color(0xFF718096),
             ),
           ),
         ],
@@ -411,8 +425,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildErrorState(String error) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -431,24 +443,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Terjadi kesalahan',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white 
-                  : const Color(0xFF2D3748),
+              color: Color(0xFF2D3748),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF718096),
+              color: Color(0xFF718096),
             ),
             textAlign: TextAlign.center,
           ),
@@ -473,8 +481,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildEmptyState() {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -493,24 +499,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Belum ada tugas',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white 
-                  : const Color(0xFF2D3748),
+              color: Color(0xFF2D3748),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Tugas yang diberikan akan muncul di sini',
             style: TextStyle(
               fontSize: 14,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF718096),
+              color: Color(0xFF718096),
             ),
             textAlign: TextAlign.center,
           ),
@@ -535,8 +537,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildGridItem(BuildContext context, Submit submit, int index) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
     final List<Color> cardColors = [
       const Color(0xFFE6FFFA), // Teal
       const Color(0xFFEBF4FF), // Blue
@@ -563,6 +563,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final icon = icons[index % icons.length];
     final deadlineColor = _getDeadlineColor(submit.batas);
     final remainingDays = _getRemainingDays(submit.batas);
+    final hasSubmitted = submit.submissionStatus != 'Belum';
 
     return Material(
       color: Colors.transparent,
@@ -573,12 +574,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             MaterialPageRoute(
               builder: (context) => SubmitDetailPage(submit: submit),
             ),
-          );
+          ).then((_) => _refreshData()); // Refresh after returning from detail page
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
-            color: themeProvider.isDarkMode ? const Color(0xFF2D3748) : Colors.white,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -596,36 +597,66 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Container(
                 height: 80,
                 decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode 
-                      ? iconColor.withOpacity(0.2) 
-                      : cardColor,
+                  color: cardColor,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
                   ),
                 ),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode 
-                          ? const Color(0xFF2D3748) 
-                          : Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: iconColor.withOpacity(0.2),
-                          blurRadius: 8,
-                          spreadRadius: 2,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: iconColor.withOpacity(0.2),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
-                      ],
+                        child: Icon(
+                          icon,
+                          size: 28,
+                          color: iconColor,
+                        ),
+                      ),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 28,
-                      color: iconColor,
-                    ),
-                  ),
+                    // Status badge
+                    if (hasSubmitted)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(submit.submissionStatus).withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            submit.submissionStatus == 'Submitted' ? 'Submitted' : 
+                            submit.submissionStatus == 'Resubmitted' ? 'Diperbarui' : 
+                            submit.submissionStatus == 'Late' ? 'Terlambat' : 'Belum',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               
@@ -642,12 +673,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         submit.judul,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: themeProvider.isDarkMode 
-                              ? Colors.white 
-                              : const Color(0xFF2D3748),
+                          color: Color(0xFF2D3748),
                           height: 1.3,
                         ),
                       ),
@@ -658,21 +687,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         children: [
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.calendar_today,
                                 size: 14,
-                                color: themeProvider.isDarkMode 
-                                    ? Colors.white.withOpacity(0.6) 
-                                    : const Color(0xFF718096),
+                                color: Color(0xFF718096),
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 _formatDate(submit.batas),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
-                                  color: themeProvider.isDarkMode 
-                                      ? Colors.white.withOpacity(0.6) 
-                                      : const Color(0xFF718096),
+                                  color: Color(0xFF718096),
                                 ),
                               ),
                             ],
@@ -715,19 +740,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Container(
                 width: double.infinity,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode 
-                      ? const Color(0xFF1A202C) 
-                      : const Color(0xFFF7FAFC),
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF7FAFC),
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(16),
                     bottomRight: Radius.circular(16),
                   ),
                   border: Border(
                     top: BorderSide(
-                      color: themeProvider.isDarkMode 
-                          ? const Color(0xFF4A5568) 
-                          : const Color(0xFFE2E8F0),
+                      color: Color(0xFFE2E8F0),
                       width: 1,
                     ),
                   ),
@@ -741,13 +762,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         MaterialPageRoute(
                           builder: (context) => SubmitDetailPage(submit: submit),
                         ),
-                      );
+                      ).then((_) => _refreshData());
                     },
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(16),
                       bottomRight: Radius.circular(16),
                     ),
-                    child: Center(
+                    child: const Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -756,11 +777,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF4299E1),
+                              color: Color(0xFF4299E1),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(
+                          SizedBox(width: 4),
+                          Icon(
                             Icons.arrow_forward,
                             size: 14,
                             color: Color(0xFF4299E1),

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 
 class ArtefakService {
-  static const String baseUrl = 'http://172.30.41.179:8080';
+  static const String baseUrl = 'http://172.27.81.96:8080';
 
   Future<String> uploadFileForArtefak({
     required String filePath,
