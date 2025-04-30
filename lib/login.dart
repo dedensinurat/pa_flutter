@@ -196,30 +196,29 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         
                         const SizedBox(height: 8),
                         
-                        // Forgot Password
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Fitur lupa password akan segera hadir'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: primaryColor,
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(50, 30),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'Lupa Password?',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ),
+                        // Align(
+                        //   alignment: Alignment.centerRight,
+                        //   child: TextButton(
+                        //     onPressed: () {
+                        //       ScaffoldMessenger.of(context).showSnackBar(
+                        //         const SnackBar(
+                        //           content: Text('Fitur lupa password akan segera hadir'),
+                        //           behavior: SnackBarBehavior.floating,
+                        //         ),
+                        //       );
+                        //     },
+                        //     style: TextButton.styleFrom(
+                        //       foregroundColor: primaryColor,
+                        //       padding: EdgeInsets.zero,
+                        //       minimumSize: const Size(50, 30),
+                        //       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        //     ),
+                        //     child: const Text(
+                        //       'Lupa Password?',
+                        //       style: TextStyle(fontSize: 12),
+                        //     ),
+                        //   ),
+                        // ),
                         
                         const SizedBox(height: 24),
                         

@@ -4,7 +4,7 @@ import 'package:flutter_artefak/providers/language_provider.dart';
 import 'package:flutter_artefak/login.dart';
 import 'pages/home_page.dart';
 import 'pages/bimbingan_page.dart';
-import 'pages/notifications_page.dart';
+import 'pages/pengumuman.dart';
 import 'pages/profile_page.dart';
 import 'pages/artefak/dokumen_pengembangan_page.dart';
 // import 'pages/artefak/upload_page.dart';

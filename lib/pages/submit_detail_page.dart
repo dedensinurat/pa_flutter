@@ -239,7 +239,9 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Row(
+                          // Fixed: Wrap this row in a Column to prevent overflow
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -261,19 +263,26 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                                 ),
                               ),
                               if (_currentSubmit.submissionDate != null) ...[
-                                const SizedBox(width: 10),
-                                Icon(
-                                  Icons.access_time,
-                                  size: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  "Dikumpulkan pada ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.submissionDate!))}",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        "Dikumpulkan pada ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.submissionDate!))}",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ],
@@ -324,9 +333,11 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                           Expanded(
                             child: Text(
                               'File dipilih: ${_selectedFile!.path.split('/').last}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.green,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -425,46 +436,45 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                   ] else ...[
                     // Show edit button if already submitted
                     if (_isEditing) ...[
-                      Row(
+                      // Fixed: Use Column instead of Row for edit buttons to prevent overflow
+                      Column(
                         children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isUploading ? null : _pickFile,
-                              icon: const Icon(Icons.attach_file),
-                              label: const Text('Pilih File Baru'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey.shade200,
-                                foregroundColor: Colors.black87,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                          ElevatedButton.icon(
+                            onPressed: _isUploading ? null : _pickFile,
+                            icon: const Icon(Icons.attach_file),
+                            label: const Text('Pilih File Baru'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade200,
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                              minimumSize: const Size(double.infinity, 50),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isUploading ? null : _uploadFile,
-                              icon: _isUploading 
-                                  ? const SizedBox(
-                                      width: 16, 
-                                      height: 16, 
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      )
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: _isUploading ? null : _uploadFile,
+                            icon: _isUploading 
+                                ? const SizedBox(
+                                    width: 16, 
+                                    height: 16, 
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
                                     )
-                                  : const Icon(Icons.save),
-                              label: Text(_isUploading ? 'Updating...' : 'Simpan Perubahan'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue.shade600,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                  )
+                                : const Icon(Icons.save),
+                            label: Text(_isUploading ? 'Updating...' : 'Simpan Perubahan'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                              minimumSize: const Size(double.infinity, 50),
                             ),
                           ),
                         ],

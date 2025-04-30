@@ -3,6 +3,7 @@ import '../models/submit_model.dart';
 import '../services/submit_services.dart';
 import '../pages/submit_detail_page.dart';
 import 'package:intl/intl.dart';
+import '../utils/enhanced_wavy_header.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -127,261 +128,223 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'Submitted':
-        return 'Sudah Dikumpulkan';
-      case 'Resubmitted':
-        return 'Sudah Diperbarui';
-      case 'Late':
-        return 'Terlambat';
-      case 'Belum':
-        return 'Belum Dikumpulkan';
-      default:
-        return status;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: Stack(
-        children: [
-          // Enhanced Wavy Background
-          ClipPath(
-            clipper: EnhancedWavyClipper(),
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.25,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xFF4299E1),
-                    const Color(0xFF63B3ED),
-                    const Color(0xFF90CDF4).withOpacity(0.8),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        color: const Color(0xFF4299E1),
+        child: Stack(
+          children: [
+            // Enhanced Wavy Background
+            ClipPath(
+              clipper: EnhancedWavyClipper(),
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.25,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF4299E1),
+                      const Color(0xFF63B3ED),
+                      const Color(0xFF90CDF4).withOpacity(0.8),
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Decorative elements
+                    Positioned(
+                      top: -20,
+                      left: -20,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 20,
+                      right: 20,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              child: Stack(
-                children: [
-                  // Decorative elements
-                  Positioned(
-                    top: -20,
-                    left: -20,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
+            ),
+
+            // App Bar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: AppBar(
+                title: const Text(
+                  'Vokasi Tera',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    color: Colors.white,
                   ),
-                  Positioned(
-                    bottom: 20,
-                    right: 20,
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
-                  ),
+                ),
+                centerTitle: true,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                iconTheme: const IconThemeData(color: Colors.white),
+                actions: [
+                  // IconButton(
+                  //   icon: const Icon(Icons.notifications_outlined),
+                  //   onPressed: () {
+                  //     ScaffoldMessenger.of(context).showSnackBar(
+                  //       const SnackBar(
+                  //         content: Text('Notifikasi akan segera hadir'),
+                  //         behavior: SnackBarBehavior.floating,
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             ),
-          ),
 
-          // App Bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AppBar(
-              title: const Text(
-                'Vokasi Tera',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 20,
-                  color: Colors.white,
-                ),
-              ),
-              centerTitle: true,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Colors.white),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notifikasi akan segera hadir'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
-                    // Main Content
-                    SafeArea(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 70.0, bottom: 24.0),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: MediaQuery.of(context).size.height - 100,
+            // Main Content
+            SafeArea(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 70.0, bottom: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Page Title
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Beranda',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                            child: IntrinsicHeight(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 8),
+                            Text(
+                              'Daftar tugas dan pengumpulan',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Content Area
+                      Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF5F7FA),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(30),
+                            topRight: Radius.circular(30),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header with search
+                              Row(
                                 children: [
-                                  // Page Title
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Beranda',
-                                          style: TextStyle(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Daftar tugas dan pengumpulan',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.white.withOpacity(0.9),
-                                          ),
+                                  const Text(
+                                    'Tugas Terbaru',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2D3748),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 10,
+                                          spreadRadius: 0,
                                         ),
                                       ],
                                     ),
                                   ),
-
-                                  const SizedBox(height: 24),
-
-                                  // Content Area
-                                  Container(
-                                    width: double.infinity,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF5F7FA),
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(30),
-                                        topRight: Radius.circular(30),
-                                      ),
-                                    ),
-                                    child: RefreshIndicator(
-                                      onRefresh: _refreshData,
-                                      color: const Color(0xFF4299E1),
-                                      child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Header with search
-                                            Row(
-                                              children: [
-                                                const Text(
-                                                  'Tugas Terbaru',
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF2D3748),
-                                                  ),
-                                                ),
-                                                const Spacer(),
-                                                Container(
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black.withOpacity(0.05),
-                                                        blurRadius: 10,
-                                                        spreadRadius: 0,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: IconButton(
-                                                    icon: const Icon(Icons.search, color: Color(0xFF4A5568)),
-                                                    onPressed: () {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text('Fitur pencarian akan segera hadir'),
-                                                          behavior: SnackBarBehavior.floating,
-                                                        ),
-                                                      );
-                                                    },
-                                                    tooltip: 'Cari tugas',
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-
-                                            const SizedBox(height: 16),
-
-                                            // GridView with fixed height
-                                            SizedBox(
-                                              height: MediaQuery.of(context).size.height * 0.6,
-                                              child: FutureBuilder<List<Submit>>(
-                                                future: _futureSubmits,
-                                                builder: (context, snapshot) {
-                                                  if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
-                                                    return _buildLoadingState();
-                                                  } else if (snapshot.hasError) {
-                                                    return _buildErrorState(snapshot.error.toString());
-                                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                                    return _buildEmptyState();
-                                                  }
-
-                                                  final submits = snapshot.data!;
-                                                  return FadeTransition(
-                                                    opacity: _fadeAnimation,
-                                                    child: GridView.builder(
-                                                      controller: _scrollController,
-                                                      physics: const BouncingScrollPhysics(),
-                                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                                        crossAxisCount: 2,
-                                                        crossAxisSpacing: 16,
-                                                        mainAxisSpacing: 16,
-                                                        childAspectRatio: 0.85,
-                                                      ),
-                                                      itemCount: submits.length,
-                                                      itemBuilder: (context, index) {
-                                                        final submit = submits[index];
-                                                        return _buildGridItem(context, submit, index);
-                                                      },
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
-                            ),
+
+                              const SizedBox(height: 16),
+
+                              // GridView with flexible height
+                              FutureBuilder<List<Submit>>(
+                                future: _futureSubmits,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
+                                    return _buildLoadingState();
+                                  } else if (snapshot.hasError) {
+                                    return _buildErrorState(snapshot.error.toString());
+                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                    return _buildEmptyState();
+                                  }
+                                  
+                                  final submits = snapshot.data!;
+                                  return FadeTransition(
+                                    opacity: _fadeAnimation,
+                                    child: GridView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 16,
+                                        mainAxisSpacing: 16,
+                                        childAspectRatio: 0.85,
+                                      ),
+                                      itemCount: submits.length,
+                                      itemBuilder: (context, index) {
+                                        final submit = submits[index];
+                                        return _buildGridItem(context, submit, index);
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-
-        ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -407,7 +370,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               ],
             ),
             child: const CircularProgressIndicator(
-              color: Color(0xFF4299E1),
+              color: Color(0xFF4A6572),
               strokeWidth: 3,
             ),
           ),
@@ -466,7 +429,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             icon: const Icon(Icons.refresh),
             label: const Text('Coba Lagi'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4299E1),
+              backgroundColor: const Color(0xFF4A6572),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -495,7 +458,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: const Icon(
               Icons.assignment_outlined,
               size: 40,
-              color: Color(0xFF4299E1),
+              color: Color(0xFF4A6572),
             ),
           ),
           const SizedBox(height: 16),
@@ -522,7 +485,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             icon: const Icon(Icons.refresh),
             label: const Text('Muat Ulang'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4299E1),
+              backgroundColor: const Color(0xFF4A6572),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -537,16 +500,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildGridItem(BuildContext context, Submit submit, int index) {
-    final List<Color> cardColors = [
-      const Color(0xFFE6FFFA), // Teal
-      const Color(0xFFEBF4FF), // Blue
-      const Color(0xFFFEF4FF), // Purple
-      const Color(0xFFFFFBEB), // Yellow
-    ];
-
     final List<Color> iconColors = [
       const Color(0xFF38B2AC), // Teal
-      const Color(0xFF4299E1), // Blue
+      const Color(0xFF4A6572), // Blue-Grey
       const Color(0xFF9F7AEA), // Purple
       const Color(0xFFECC94B), // Yellow
     ];
@@ -558,15 +514,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       Icons.event_outlined,
     ];
 
-    final cardColor = cardColors[index % cardColors.length];
     final iconColor = iconColors[index % iconColors.length];
     final icon = icons[index % icons.length];
     final deadlineColor = _getDeadlineColor(submit.batas);
     final remainingDays = _getRemainingDays(submit.batas);
     final hasSubmitted = submit.submissionStatus != 'Belum';
 
-    return Material(
-      color: Colors.transparent,
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -574,223 +534,81 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             MaterialPageRoute(
               builder: (context) => SubmitDetailPage(submit: submit),
             ),
-          ).then((_) => _refreshData()); // Refresh after returning from detail page
+          ).then((_) => _refreshData());
         },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                spreadRadius: 0,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Header with icon
+              // Icon
               Container(
-                height: 80,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: iconColor.withOpacity(0.2),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          icon,
-                          size: 28,
-                          color: iconColor,
-                        ),
-                      ),
-                    ),
-                    // Status badge
-                    if (hasSubmitted)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(submit.submissionStatus).withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
-                                spreadRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            submit.submissionStatus == 'Submitted' ? 'Submitted' : 
-                            submit.submissionStatus == 'Resubmitted' ? 'Diperbarui' : 
-                            submit.submissionStatus == 'Late' ? 'Terlambat' : 'Belum',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 20,
                 ),
               ),
-              
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+              // Title
+              Text(
+                submit.judul,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3748),
+                ),
+              ),
+
+              // Deadline Info
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date and Deadline
+                  Row(
                     children: [
-                      // Title
-                      Text(
-                        submit.judul,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2D3748),
-                          height: 1.3,
-                        ),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 12,
+                        color: Colors.grey[600],
                       ),
-                      
-                      // Deadline info
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today,
-                                size: 14,
-                                color: Color(0xFF718096),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _formatDate(submit.batas),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF718096),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: deadlineColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.access_time,
-                                  size: 12,
-                                  color: deadlineColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  remainingDays,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: deadlineColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatDate(submit.batas),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              
-              // Action button
-              Container(
-                width: double.infinity,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF7FAFC),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                  border: Border(
-                    top: BorderSide(
-                      color: Color(0xFFE2E8F0),
-                      width: 1,
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: deadlineColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SubmitDetailPage(submit: submit),
-                        ),
-                      ).then((_) => _refreshData());
-                    },
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(16),
-                      bottomRight: Radius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Lihat Detail',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF4299E1),
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 14,
-                            color: Color(0xFF4299E1),
-                          ),
-                        ],
+                    child: Text(
+                      remainingDays,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: deadlineColor,
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -798,42 +616,174 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
   }
-}
 
-// Enhanced Wavy Clipper for a more modern look
-class EnhancedWavyClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 40);
+  Widget _buildListItem(BuildContext context, Submit submit, int index) {
+    final List<Color> iconColors = [
+      const Color(0xFF38B2AC), // Teal
+      const Color(0xFF4A6572), // Blue-Grey
+      const Color(0xFF9F7AEA), // Purple
+      const Color(0xFFECC94B), // Yellow
+    ];
 
-    // First wave
-    var firstControlPoint = Offset(size.width / 4, size.height - 10);
-    var firstEndPoint = Offset(size.width / 2.25, size.height - 30);
-    path.quadraticBezierTo(
-      firstControlPoint.dx,
-      firstControlPoint.dy,
-      firstEndPoint.dx,
-      firstEndPoint.dy,
+    final List<IconData> icons = [
+      Icons.book_outlined,
+      Icons.assignment_outlined,
+      Icons.folder_outlined,
+      Icons.event_outlined,
+    ];
+
+    final iconColor = iconColors[index % iconColors.length];
+    final icon = icons[index % icons.length];
+    final deadlineColor = _getDeadlineColor(submit.batas);
+    final remainingDays = _getRemainingDays(submit.batas);
+    final hasSubmitted = submit.submissionStatus != 'Belum';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SubmitDetailPage(submit: submit),
+            ),
+          ).then((_) => _refreshData());
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Icon
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title and Status
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            submit.judul,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2D3748),
+                            ),
+                          ),
+                        ),
+                        if (hasSubmitted)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(submit.submissionStatus).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _getStatusColor(submit.submissionStatus).withOpacity(0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              submit.submissionStatus == 'Submitted' ? 'Sudah' : 
+                              submit.submissionStatus == 'Resubmitted' ? 'Diperbarui' : 
+                              submit.submissionStatus == 'Late' ? 'Terlambat' : 'Belum',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _getStatusColor(submit.submissionStatus),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Description
+                    Text(
+                      submit.instruksi,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Date and Deadline
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _formatDate(submit.batas),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: deadlineColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            remainingDays,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: deadlineColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Arrow
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Color(0xFF4A6572),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-
-    // Second wave
-    var secondControlPoint = Offset(size.width - (size.width / 3.25), size.height - 65);
-    var secondEndPoint = Offset(size.width, size.height - 40);
-    path.quadraticBezierTo(
-      secondControlPoint.dx,
-      secondControlPoint.dy,
-      secondEndPoint.dx,
-      secondEndPoint.dy,
-    );
-
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
-    return false;
   }
 }
