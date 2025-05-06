@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/announcement_model.dart';
 
 class AnnouncementService {
-  static const String baseUrl = "http://192.168.157.227:8080";
+  static const String baseUrl = 'http://192.168.86.227:8080';
 
   // Get all announcements
   static Future<List<Announcement>> getAnnouncements() async {

@@ -19,6 +19,7 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
+  bool _isRefreshing = false;
   
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -54,21 +55,30 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
 
   // Fetch all bimbingan from the API
   Future<void> _fetchBimbingan() async {
+    if (!mounted) return;
+    
     setState(() {
-      _isLoading = true;
+      _isLoading = !_isRefreshing; // Only show loading state if not refreshing
       _hasError = false;
     });
     
     try {
       final data = await BimbinganService.getAll();
+      
+      if (!mounted) return;
+      
       setState(() {
         _bimbinganList = data;
         _isLoading = false;
+        _isRefreshing = false;
       });
       _animationController.forward();
     } catch (e) {
+      if (!mounted) return;
+      
       setState(() {
         _isLoading = false;
+        _isRefreshing = false;
         _hasError = true;
         _errorMessage = 'Gagal memuat data: $e';
       });
@@ -76,22 +86,44 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
     }
   }
 
+  // Handle refresh
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+    return _fetchBimbingan();
+  }
+
   // Format date
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy • HH:mm').format(date);
+  }
+  
+  // Format date for list display
+  String _formatDateForList(DateTime date) {
+    return DateFormat('dd MMM yyyy').format(date);
+  }
+  
+  // Format time for list display
+  String _formatTimeForList(DateTime date) {
+    return DateFormat('HH:mm').format(date);
   }
 
   // Get status color based on status
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'selesai':
-        return const Color(0xFF38B2AC); // Green for selesai
+        return const Color(0xFF38A169); // Green for selesai
       case 'ditolak':
         return const Color(0xFFE53E3E); // Red for ditolak
-      case 'pending':
-        return const Color(0xFFED8936); // Orange for pending
+      case 'menunggu':
+        return const Color(0xFF718096); // Gray for menunggu
+      case 'disetujui':
+        return const Color(0xFF3182CE); // Blue for disetujui
+      case 'dijadwalkan':
+        return const Color(0xFF805AD5); // Purple for dijadwalkan
       default:
-        return const Color(0xFF718096);
+        return const Color(0xFF718096); // Gray for others
     }
   }
 
@@ -102,10 +134,14 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
         return const Color(0xFFE6FFFA); // Light green bg for selesai
       case 'ditolak':
         return const Color(0xFFFFF5F5); // Light red bg for ditolak
-      case 'pending':
-        return const Color(0xFFFFFBEB); // Light yellow bg for pending
+      case 'menunggu':
+        return const Color(0xFFEDF2F7); // Light gray bg for menunggu
+      case 'disetujui':
+        return const Color(0xFFEBF8FF); // Light blue bg for disetujui
+      case 'dijadwalkan':
+        return const Color(0xFFF3E8FF); // Light purple bg for dijadwalkan
       default:
-        return const Color(0xFFEDF2F7);
+        return const Color(0xFFEDF2F7); // Light gray bg for others
     }
   }
 
@@ -116,8 +152,12 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
         return Icons.check_circle;
       case 'ditolak':
         return Icons.cancel;
-      case 'pending':
+      case 'menunggu':
         return Icons.access_time;
+      case 'disetujui':
+        return Icons.thumb_up;
+      case 'dijadwalkan':
+        return Icons.event;
       default:
         return Icons.help_outline;
     }
@@ -190,9 +230,9 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
               left: 0,
               right: 0,
               child: AppBar(
-                title: Text(
-                  languageProvider.translate('app_title'),
-                  style: const TextStyle(
+                title: const Text(
+                  'Vokasi Tera',
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 20,
                     color: Colors.white,
@@ -201,131 +241,128 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
                 centerTitle: true,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                iconTheme: const IconThemeData(color: Colors.white),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _fetchBimbingan,
-                  ),
-                ],
+                iconTheme: const IconThemeData(color: Colors.white),               
               ),
             ),
 
             // Main Content
             SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 70.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Page Title
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Bimbingan',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Kelola jadwal bimbingan dengan dosen',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Content Area
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode 
-                              ? const Color(0xFF1A202C) 
-                              : const Color(0xFFF5F7FA),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(30),
-                            topRight: Radius.circular(30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Page Title
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24.0, 70.0, 24.0, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Bimbingan',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Request Button
-                                _buildRequestButton(),
-                                
-                                const SizedBox(height: 24),
-                                
-                                // Bimbingan List Title
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Daftar Bimbingan',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: themeProvider.isDarkMode 
-                                            ? Colors.white 
-                                            : const Color(0xFF2D3748),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Kelola jadwal bimbingan dengan dosen',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Content Area - Expanded to fill remaining space
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode 
+                            ? const Color(0xFF1A202C) 
+                            : const Color(0xFFF5F7FA),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: RefreshIndicator(
+                          onRefresh: _handleRefresh,
+                          color: const Color(0xFF4299E1),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 100), // Added bottom padding
+                            children: [
+                              // Request Button
+                              _buildRequestButton(),
+                              
+                              const SizedBox(height: 24),
+                              
+                              // Bimbingan List Title
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Daftar Bimbingan',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: themeProvider.isDarkMode 
+                                          ? Colors.white 
+                                          : const Color(0xFF2D3748),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEBF8FF),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      '${_bimbinganList.length} Bimbingan',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF4299E1),
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEBF8FF),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        '${_bimbinganList.length} Bimbingan',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF4299E1),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 16),
-                                
-                                // Bimbingan List
-                                Expanded(
-                                  child: _isLoading
-                                      ? _buildLoadingState()
-                                      : _hasError
-                                          ? _buildErrorState()
-                                          : _bimbinganList.isEmpty
-                                              ? _buildEmptyState()
-                                              : _buildBimbinganList(),
-                                ),
-                                
-                                // Guidance Info
-                                _buildGuidanceInfo(),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
+                              
+                              const SizedBox(height: 16),
+                              
+                              // Bimbingan List
+                              _isLoading
+                                  ? _buildLoadingState()
+                                  : _hasError
+                                      ? _buildErrorState()
+                                      : _bimbinganList.isEmpty
+                                          ? _buildEmptyState()
+                                          : _buildBimbinganList(),
+                              
+                              // Add space between list and guidance
+                              const SizedBox(height: 24),
+                              
+                              // Guidance Info - Now part of the scrollable content
+                              _buildGuidanceInfo(),
+                              
+                              // Extra space at bottom to prevent overflow with bottom nav
+                              const SizedBox(height: 24),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -335,7 +372,7 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
   }
 
   Widget _buildRequestButton() {
-    return ElevatedButton(
+    return ElevatedButton.icon(
       onPressed: () async {
         final result = await Navigator.push(
           context,
@@ -345,6 +382,11 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
           _fetchBimbingan();
         }
       },
+      icon: const Icon(Icons.add, size: 20),
+      label: const Text(
+        'Ajukan Bimbingan Baru',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF4299E1),
         foregroundColor: Colors.white,
@@ -354,58 +396,50 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
         ),
         elevation: 0,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.add, size: 20),
-          SizedBox(width: 8),
-          Text(
-            'Ajukan Bimbingan Baru',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildLoadingState() {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: themeProvider.isDarkMode ? const Color(0xFF2D3748) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
+    return SizedBox(
+      height: 200,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: themeProvider.isDarkMode ? const Color(0xFF2D3748) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const CircularProgressIndicator(
+                color: Color(0xFF4299E1),
+                strokeWidth: 3,
+              ),
             ),
-            child: const CircularProgressIndicator(
-              color: Color(0xFF4299E1),
-              strokeWidth: 3,
+            const SizedBox(height: 16),
+            Text(
+              'Memuat data bimbingan...',
+              style: TextStyle(
+                fontSize: 14,
+                color: themeProvider.isDarkMode 
+                    ? Colors.white.withOpacity(0.7) 
+                    : const Color(0xFF718096),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Memuat data bimbingan...',
-            style: TextStyle(
-              fontSize: 14,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF718096),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -413,50 +447,53 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
   Widget _buildErrorState() {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF5F5),
-              borderRadius: BorderRadius.circular(35),
-            ),
-            child: const Icon(
-              Icons.error_outline,
-              size: 40,
-              color: Color(0xFFE53E3E),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _errorMessage,
-            style: TextStyle(
-              fontSize: 14,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF718096),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _fetchBimbingan,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Coba Lagi'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4299E1),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+    return SizedBox(
+      height: 200,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF5F5),
+                borderRadius: BorderRadius.circular(35),
               ),
-              elevation: 0,
+              child: const Icon(
+                Icons.error_outline,
+                size: 40,
+                color: Color(0xFFE53E3E),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage,
+              style: TextStyle(
+                fontSize: 14,
+                color: themeProvider.isDarkMode 
+                    ? Colors.white.withOpacity(0.7) 
+                    : const Color(0xFF718096),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _fetchBimbingan,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba Lagi'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4299E1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -464,46 +501,49 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
   Widget _buildEmptyState() {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEBF8FF),
-              borderRadius: BorderRadius.circular(40),
+    return SizedBox(
+      height: 200,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEBF8FF),
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: const Icon(
+                Icons.calendar_today,
+                size: 40,
+                color: Color(0xFF4299E1),
+              ),
             ),
-            child: const Icon(
-              Icons.calendar_today,
-              size: 40,
-              color: Color(0xFF4299E1),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada data bimbingan',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: themeProvider.isDarkMode 
+                    ? Colors.white 
+                    : const Color(0xFF2D3748),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Belum ada data bimbingan',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white 
-                  : const Color(0xFF2D3748),
+            const SizedBox(height: 8),
+            Text(
+              'Ajukan bimbingan baru untuk memulai',
+              style: TextStyle(
+                fontSize: 14,
+                color: themeProvider.isDarkMode 
+                    ? Colors.white.withOpacity(0.7) 
+                    : const Color(0xFF718096),
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ajukan bimbingan baru untuk memulai',
-            style: TextStyle(
-              fontSize: 14,
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF718096),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -524,25 +564,21 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: ListView.separated(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          itemCount: _bimbinganList.length,
-          separatorBuilder: (context, index) => Divider(
-            height: 1,
-            color: themeProvider.isDarkMode 
-                ? const Color(0xFF4A5568) 
-                : const Color(0xFFE2E8F0),
-            indent: 16,
-            endIndent: 16,
-          ),
-          itemBuilder: (context, index) {
-            final item = _bimbinganList[index];
-            return _buildBimbinganCard(item, index);
-          },
+      child: ListView.separated(
+        shrinkWrap: true, // Important to prevent overflow
+        physics: const NeverScrollableScrollPhysics(), // Disable scrolling of this list
+        padding: EdgeInsets.zero,
+        itemCount: _bimbinganList.length,
+        separatorBuilder: (context, index) => Divider(
+          height: 1,
+          color: themeProvider.isDarkMode 
+              ? const Color(0xFF4A5568) 
+              : const Color(0xFFE2E8F0),
         ),
+        itemBuilder: (context, index) {
+          final item = _bimbinganList[index];
+          return _buildBimbinganCard(item, index);
+        },
       ),
     );
   }
@@ -550,11 +586,13 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
   Widget _buildBimbinganCard(Bimbingan item, int index) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     
+    // Format the index number with leading zero
+    String formattedIndex = (index + 1).toString().padLeft(2, '0');
+    
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          // Show detail or action sheet
           _showBimbinganDetail(item);
         },
         child: Padding(
@@ -562,7 +600,77 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with number and status
+              // Title with keperluan
+              Text(
+                item.keperluan,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: themeProvider.isDarkMode 
+                      ? Colors.white 
+                      : const Color(0xFF2D3748),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Date and Location
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: themeProvider.isDarkMode 
+                        ? Colors.white.withOpacity(0.6) 
+                        : const Color(0xFF718096),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _formatDateForList(item.rencanaMulai) + ' • ' + _formatTimeForList(item.rencanaMulai),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: themeProvider.isDarkMode 
+                          ? Colors.white.withOpacity(0.6) 
+                          : const Color(0xFF718096),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 8),
+              
+              // Location
+              Row(
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    size: 14,
+                    color: themeProvider.isDarkMode 
+                        ? Colors.white.withOpacity(0.6) 
+                        : const Color(0xFF718096),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      item.lokasi,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: themeProvider.isDarkMode 
+                            ? Colors.white.withOpacity(0.6) 
+                            : const Color(0xFF718096),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Bottom row with number and status
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -575,7 +683,7 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Bimbingan #${index + 1}',
+                      'Bimbingan #$formattedIndex',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -585,6 +693,8 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
                       ),
                     ),
                   ),
+                  
+                  // Status badge - Fixed to show properly
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -609,69 +719,6 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Keperluan
-              Text(
-                item.keperluan,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: themeProvider.isDarkMode 
-                      ? Colors.white 
-                      : const Color(0xFF2D3748),
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Date and Location
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 14,
-                    color: themeProvider.isDarkMode 
-                        ? Colors.white.withOpacity(0.6) 
-                        : const Color(0xFF718096),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatDate(item.rencanaMulai),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: themeProvider.isDarkMode 
-                          ? Colors.white.withOpacity(0.6) 
-                          : const Color(0xFF718096),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.location_on,
-                    size: 14,
-                    color: themeProvider.isDarkMode 
-                        ? Colors.white.withOpacity(0.6) 
-                        : const Color(0xFF718096),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      item.lokasi,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: themeProvider.isDarkMode 
-                            ? Colors.white.withOpacity(0.6) 
-                            : const Color(0xFF718096),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -791,52 +838,7 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
                     _buildDetailItem('Tanggal Selesai', _formatDate(item.rencanaSelesai)),
                     _buildDetailItem('Lokasi', item.lokasi),
                     
-                    const SizedBox(height: 24),
-                    
-                    // Actions based on status
-                    if (item.status.toLowerCase() == 'pending')
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                // Add cancel logic
-                              },
-                              icon: const Icon(Icons.close),
-                              label: const Text('Batalkan'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFFE53E3E),
-                                side: const BorderSide(color: Color(0xFFE53E3E)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                // Add edit logic
-                              },
-                              icon: const Icon(Icons.edit),
-                              label: const Text('Edit'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4299E1),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 24),                
                     
                     if (item.status.toLowerCase() == 'selesai')
                       ElevatedButton.icon(
@@ -947,7 +949,7 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 24),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode 

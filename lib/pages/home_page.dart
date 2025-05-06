@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/submit_model.dart';
+import '../models/jadwal_model.dart';
 import '../services/submit_services.dart';
+import '../services/jadwal_service.dart';
 import '../pages/submit_detail_page.dart';
 import 'package:intl/intl.dart';
 import '../utils/enhanced_wavy_header.dart';
+import '../widgets/jadwal_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -14,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late Future<List<Submit>> _futureSubmits;
+  late Future<List<Jadwal>> _futureJadwal;
   bool _isRefreshing = false;
 
   late AnimationController _animationController;
@@ -39,6 +43,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
     
     _futureSubmits = _fetchSubmits();
+    _futureJadwal = _fetchJadwal();
   }
 
   @override
@@ -72,9 +77,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  Future<List<Jadwal>> _fetchJadwal() async {
+    try {
+      final jadwals = await JadwalService.getJadwal();
+      print('Fetched ${jadwals.length} jadwals');
+      return jadwals;
+    } catch (e) {
+      print('Error fetching jadwal: $e');
+      return [];
+    }
+  }
+
   Future<void> _refreshData() async {
     setState(() {
       _futureSubmits = _fetchSubmits();
+      _futureJadwal = _fetchJadwal();
     });
   }
 
@@ -110,21 +127,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       return const Color(0xFFECC94B); // Yellow for approaching deadline
     } else {
       return const Color(0xFF38B2AC); // Green for far deadline
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Submitted':
-        return Colors.green;
-      case 'Resubmitted':
-        return Colors.blue;
-      case 'Late':
-        return Colors.orange;
-      case 'Belum':
-        return Colors.red;
-      default:
-        return Colors.grey;
     }
   }
 
@@ -204,17 +206,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 elevation: 0,
                 iconTheme: const IconThemeData(color: Colors.white),
                 actions: [
-                  // IconButton(
-                  //   icon: const Icon(Icons.notifications_outlined),
-                  //   onPressed: () {
-                  //     ScaffoldMessenger.of(context).showSnackBar(
-                  //       const SnackBar(
-                  //         content: Text('Notifikasi akan segera hadir'),
-                  //         behavior: SnackBarBehavior.floating,
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      // Navigate to notifications page
+                    },
+                  ),
                 ],
               ),
             ),
@@ -244,7 +241,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Daftar tugas dan pengumpulan',
+                              'Jadwal dan tugas Anda',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.white.withOpacity(0.9),
@@ -271,64 +268,117 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Header with search
+                              // Jadwal Section
                               Row(
                                 children: [
                                   const Text(
-                                    'Tugas Terbaru',
+                                    'Jadwal Seminar',
                                     style: TextStyle(
+                                      fontFamily: 'Serif',
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF2D3748),
                                     ),
                                   ),
                                   const Spacer(),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.05),
-                                          blurRadius: 10,
-                                          spreadRadius: 0,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  // TextButton(
+                                  //   onPressed: () {
+                                  //     Navigator.pushNamed(context, '/jadwal');
+                                  //   },
+                                  //   style: TextButton.styleFrom(
+                                  //     foregroundColor: const Color(0xFF4299E1),
+                                  //   ),
+                                  //   child: const Text('Lihat Semua'),
+                                  // ),
                                 ],
                               ),
 
                               const SizedBox(height: 16),
 
-                              // GridView with flexible height
+                              // Jadwal List
+                              FutureBuilder<List<Jadwal>>(
+                                future: _futureJadwal,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
+                                    return _buildLoadingState('Memuat jadwal...');
+                                  } else if (snapshot.hasError) {
+                                    return _buildErrorState('Gagal memuat jadwal: ${snapshot.error}');
+                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                    return _buildEmptyState(
+                                      'Belum ada jadwal',
+                                      'Jadwal seminar akan muncul di sini',
+                                      Icons.event_busy
+                                    );
+                                  }
+                                  
+                                  final jadwalList = snapshot.data!;
+                                  // Show only the first 2 jadwal items
+                                  final displayedJadwals = jadwalList.length > 2 
+                                      ? jadwalList.sublist(0, 2) 
+                                      : jadwalList;
+                                      
+                                  return FadeTransition(
+                                    opacity: _fadeAnimation,
+                                    child: Column(
+                                      children: displayedJadwals.map((jadwal) => 
+                                        JadwalCard(
+                                          jadwal: jadwal,
+                                          onRefresh: _refreshData,
+                                        )
+                                      ).toList(),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // Tugas Section
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Tugas Terbaru',
+                                    style: TextStyle(
+                                      fontFamily: 'Serif',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2D3748),
+                                    ),
+                                  ),
+                                  const Spacer(),
+    
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // Simple List view for tasks
                               FutureBuilder<List<Submit>>(
                                 future: _futureSubmits,
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
-                                    return _buildLoadingState();
+                                    return _buildLoadingState('Memuat daftar tugas...');
                                   } else if (snapshot.hasError) {
                                     return _buildErrorState(snapshot.error.toString());
                                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                    return _buildEmptyState();
+                                    return _buildEmptyState(
+                                      'Belum ada tugas',
+                                      'Tugas yang diberikan akan muncul di sini',
+                                      Icons.assignment_outlined
+                                    );
                                   }
                                   
                                   final submits = snapshot.data!;
                                   return FadeTransition(
                                     opacity: _fadeAnimation,
-                                    child: GridView.builder(
+                                    child: ListView.separated(
                                       shrinkWrap: true,
                                       physics: const NeverScrollableScrollPhysics(),
-                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 16,
-                                        mainAxisSpacing: 16,
-                                        childAspectRatio: 0.85,
-                                      ),
                                       itemCount: submits.length,
+                                      separatorBuilder: (context, index) => const SizedBox(height: 8),
                                       itemBuilder: (context, index) {
                                         final submit = submits[index];
-                                        return _buildGridItem(context, submit, index);
+                                        return _buildSimpleTaskItem(context, submit, index);
                                       },
                                     ),
                                   );
@@ -349,7 +399,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(String message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -375,9 +425,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Memuat daftar tugas...',
-            style: TextStyle(
+          Text(
+            message,
+            style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF718096),
             ),
@@ -435,7 +485,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              elevation: 0,
             ),
           ),
         ],
@@ -443,7 +492,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(String title, String message, IconData icon) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -455,25 +504,25 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               color: const Color(0xFFEBF8FF),
               borderRadius: BorderRadius.circular(40),
             ),
-            child: const Icon(
-              Icons.assignment_outlined,
+            child: Icon(
+              icon,
               size: 40,
-              color: Color(0xFF4A6572),
+              color: const Color(0xFF4A6572),
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Belum ada tugas',
-            style: TextStyle(
+          Text(
+            title,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Color(0xFF2D3748),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Tugas yang diberikan akan muncul di sini',
-            style: TextStyle(
+          Text(
+            message,
+            style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF718096),
             ),
@@ -491,7 +540,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              elevation: 0,
             ),
           ),
         ],
@@ -499,7 +547,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildGridItem(BuildContext context, Submit submit, int index) {
+  Widget _buildSimpleTaskItem(BuildContext context, Submit submit, int index) {
     final List<Color> iconColors = [
       const Color(0xFF38B2AC), // Teal
       const Color(0xFF4A6572), // Blue-Grey
@@ -507,25 +555,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       const Color(0xFFECC94B), // Yellow
     ];
 
-    final List<IconData> icons = [
-      Icons.book_outlined,
-      Icons.assignment_outlined,
-      Icons.folder_outlined,
-      Icons.event_outlined,
-    ];
+    // Replace these lines:
+    // final List<IconData> icons = [
+    //   Icons.book_outlined,
+    //   Icons.assignment_outlined,
+    //   Icons.folder_outlined,
+    //   Icons.event_outlined,
+    // ];
 
-    final iconColor = iconColors[index % iconColors.length];
-    final icon = icons[index % icons.length];
+    // final iconColor = iconColors[index % iconColors.length];
+    // final icon = icons[index % icons.length];
+
+    // With this:
+    final iconColor = const Color(0xFF4A6572); // Blue-Grey color for all task icons
+    const icon = Icons.assignment_outlined; // Use assignment icon for all tasks
     final deadlineColor = _getDeadlineColor(submit.batas);
     final remainingDays = _getRemainingDays(submit.batas);
-    final hasSubmitted = submit.submissionStatus != 'Belum';
 
     return Card(
       margin: EdgeInsets.zero,
-      elevation: 0,
+      elevation: 0.5,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200, width: 0.5),
       ),
       child: InkWell(
         onTap: () {
@@ -536,249 +588,74 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ).then((_) => _refreshData());
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 20,
-                ),
-              ),
-
-              // Title
-              Text(
-                submit.judul,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2D3748),
-                ),
-              ),
-
-              // Deadline Info
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Date and Deadline
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 12,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatDate(submit.batas),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: deadlineColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      remainingDays,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: deadlineColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildListItem(BuildContext context, Submit submit, int index) {
-    final List<Color> iconColors = [
-      const Color(0xFF38B2AC), // Teal
-      const Color(0xFF4A6572), // Blue-Grey
-      const Color(0xFF9F7AEA), // Purple
-      const Color(0xFFECC94B), // Yellow
-    ];
-
-    final List<IconData> icons = [
-      Icons.book_outlined,
-      Icons.assignment_outlined,
-      Icons.folder_outlined,
-      Icons.event_outlined,
-    ];
-
-    final iconColor = iconColors[index % iconColors.length];
-    final icon = icons[index % icons.length];
-    final deadlineColor = _getDeadlineColor(submit.batas);
-    final remainingDays = _getRemainingDays(submit.batas);
-    final hasSubmitted = submit.submissionStatus != 'Belum';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SubmitDetailPage(submit: submit),
-            ),
-          ).then((_) => _refreshData());
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon
+              // Small icon
               Container(
-                width: 50,
-                height: 50,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   icon,
                   color: iconColor,
-                  size: 24,
+                  size: 16,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               
               // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Title and Status
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            submit.judul,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2D3748),
-                            ),
-                          ),
-                        ),
-                        if (hasSubmitted)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(submit.submissionStatus).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _getStatusColor(submit.submissionStatus).withOpacity(0.5),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              submit.submissionStatus == 'Submitted' ? 'Sudah' : 
-                              submit.submissionStatus == 'Resubmitted' ? 'Diperbarui' : 
-                              submit.submissionStatus == 'Late' ? 'Terlambat' : 'Belum',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: _getStatusColor(submit.submissionStatus),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Description
+                    // Title
                     Text(
-                      submit.instruksi,
-                      maxLines: 2,
+                      submit.judul,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
+                        fontFamily: 'Serif',
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2D3748),
                       ),
                     ),
+                    const SizedBox(height: 2),
                     
-                    const SizedBox(height: 12),
-                    
-                    // Date and Deadline
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _formatDate(submit.batas),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: deadlineColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            remainingDays,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: deadlineColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                    // Date
+                    Text(
+                      _formatDate(submit.batas),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
               ),
               
-              // Arrow
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Color(0xFF4A6572),
+              // Deadline chip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: deadlineColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  remainingDays,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: deadlineColor,
+                  ),
+                ),
               ),
             ],
           ),

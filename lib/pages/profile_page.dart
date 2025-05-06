@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_artefak/models/student_model.dart';
+import 'package:flutter_artefak/services/api_service.dart';
 import 'package:flutter_artefak/pages/profil_detail_page.dart';
 import 'package:flutter_artefak/pages/setting_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_artefak/providers/theme_provider.dart';
 import 'package:flutter_artefak/providers/language_provider.dart';
-import 'dart:ui';
+import 'dart:math' as math;
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -18,11 +20,15 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // Student data
+  bool _isLoading = true;
+  Student? _student;
+  String _errorMessage = '';
+
   @override
   void initState() {
     super.initState();
     
-    // Setup animations
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -45,16 +51,48 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
     
-    // Start animation after build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _animationController.forward();
-    });
+    // Start animation immediately - don't wait for data
+    _animationController.forward();
+    
+    // Load student data from API
+    _loadStudentData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadStudentData() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // Use the same API call as in ProfileDetailPage
+      final student = await ApiService.getStudentData();
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _student = student;
+        _isLoading = false;
+        if (student == null) {
+          _errorMessage = 'Gagal memuat data mahasiswa';
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Terjadi kesalahan: $e';
+      });
+    }
   }
 
   void _showSignOutDialog() {
@@ -186,17 +224,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 elevation: 0,
                 iconTheme: const IconThemeData(color: Colors.white),
                 actions: [
-                  // IconButton(
-                  //   icon: const Icon(Icons.notifications_outlined),
-                  //   onPressed: () {
-                  //     ScaffoldMessenger.of(context).showSnackBar(
-                  //       const SnackBar(
-                  //         content: Text('Notifikasi akan segera hadir'),
-                  //         behavior: SnackBarBehavior.floating,
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadStudentData,
+                  ),
                 ],
               ),
             ),
@@ -234,106 +265,94 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                             children: [
                               const SizedBox(height: 30),
                               
-                              // Profile Image with Decoration
-                              Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Outer decoration
-                                  Container(
-                                    width: 110,
-                                    height: 110,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          const Color(0xFF4299E1).withOpacity(0.2),
-                                          const Color(0xFF90CDF4).withOpacity(0.2),
-                                        ],
+                              // Profile Image with initial letter and camera
+                              _isLoading
+                              ? Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.grey.shade200,
+                                  ),
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 30,
+                                      height: 30,
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF4299E1),
+                                        strokeWidth: 3,
                                       ),
                                     ),
                                   ),
-                                  
-                                  // Inner decoration
-                                  Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: themeProvider.isDarkMode 
-                                            ? const Color(0xFF2D3748) 
-                                            : Colors.white,
-                                        width: 4,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF4299E1).withOpacity(0.3),
-                                          blurRadius: 15,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(50),
-                                      child: Image.network(
-                                        'https://i.pravatar.cc/150?img=3',
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return Center(
-                                            child: CircularProgressIndicator(
-                                              value: loadingProgress.expectedTotalBytes != null
-                                                  ? loadingProgress.cumulativeBytesLoaded /
-                                                      loadingProgress.expectedTotalBytes!
-                                                  : null,
-                                              color: const Color(0xFF4299E1),
+                                )
+                              : Hero(
+                                  tag: 'profile-avatar',
+                                  child: Stack(
+                                    alignment: Alignment.bottomRight,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF4299E1).withOpacity(0.3),
+                                              blurRadius: 20,
+                                              spreadRadius: 5,
                                             ),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Container(
-                                            color: const Color(0xFF4299E1),
-                                            child: const Icon(
-                                              Icons.person,
+                                          ],
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 60,
+                                          backgroundColor: const Color(0xFF4299E1),
+                                          child: Text(
+                                            _student != null && _student!.nama.isNotEmpty 
+                                              ? _student!.nama[0].toUpperCase() 
+                                              : '?',
+                                            style: const TextStyle(
+                                              fontSize: 40, 
                                               color: Colors.white,
-                                              size: 50,
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                          );
-                                        },
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  
-                                  // Status indicator
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: Colors.green,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 4,
+                                        child: Material(
                                           color: themeProvider.isDarkMode 
-                                              ? const Color(0xFF2D3748) 
+                                              ? const Color(0xFF1A202C) 
                                               : Colors.white,
-                                          width: 2,
+                                          elevation: 4,
+                                          shape: const CircleBorder(),
+                                          child: InkWell(
+                                            onTap: () {
+                                              // Handle camera tap
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Fitur upload foto belum tersedia'),
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            },
+                                            customBorder: const CircleBorder(),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: const BoxDecoration(
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.camera_alt,
+                                                color: Color(0xFF4299E1),
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.check,
-                                          color: Colors.white,
-                                          size: 14,
-                                        ),
-                                      ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
                               const SizedBox(height: 16),
                               
                               // Greeting and Name
@@ -347,16 +366,36 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                "Sofia Assegaf",
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: themeProvider.isDarkMode 
-                                      ? Colors.white 
-                                      : const Color(0xFF2D3748),
+                              _isLoading
+                              ? Container(
+                                  width: 150,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF4299E1),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  _student != null ? _student!.nama : 'Data tidak tersedia',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeProvider.isDarkMode 
+                                        ? Colors.white 
+                                        : const Color(0xFF2D3748),
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                              ),
                               const SizedBox(height: 8),
                               
                               // Status Badge
@@ -393,13 +432,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                                 padding: const EdgeInsets.symmetric(horizontal: 24),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    _buildStatItem("Semester", "5"),
-                                    _buildDivider(),
-                                    _buildStatItem("IPK", "3.85"),
-                                    _buildDivider(),
-                                    _buildStatItem("SKS", "110"),
-                                  ],
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -460,21 +492,20 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                               
                               _buildDividerHorizontal(),
                               
-                              // Bantuan
-                              _buildMenuOption(
-                                icon: Icons.help_outline,
-                                title: languageProvider.translate('help'),
-                                subtitle: "Pusat bantuan dan FAQ",
-                                iconColor: const Color(0xFF48BB78),
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Fitur bantuan akan segera hadir'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                              ),
+                              // _buildMenuOption(
+                              //   icon: Icons.help_outline,
+                              //   title: languageProvider.translate('help'),
+                              //   subtitle: "Pusat bantuan dan FAQ",
+                              //   iconColor: const Color(0xFF48BB78),
+                              //   onTap: () {
+                              //     ScaffoldMessenger.of(context).showSnackBar(
+                              //       const SnackBar(
+                              //         content: Text('Fitur bantuan akan segera hadir'),
+                              //         behavior: SnackBarBehavior.floating,
+                              //       ),
+                              //     );
+                              //   },
+                              // ),
                               
                               _buildDividerHorizontal(),
                               
@@ -511,6 +542,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             ),
           ],
         ),
+        // No bottom navigation bar
       ),
     );
   }

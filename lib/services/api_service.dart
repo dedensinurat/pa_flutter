@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_artefak/models/student_model.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.157.227:8080";
+  static const String baseUrl = 'http://192.168.86.227:8080';
   static const String externalApiUrl = "https://cis-dev.del.ac.id/api";
 
   static Future<Map<String, dynamic>> login(String username, String password) async {
