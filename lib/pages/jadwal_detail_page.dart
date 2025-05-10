@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/jadwal_service.dart';
+import '../models/jadwal_model.dart';
 import '../utils/enhanced_wavy_header.dart';
 
 class JadwalDetailPage extends StatefulWidget {
@@ -17,7 +18,7 @@ class JadwalDetailPage extends StatefulWidget {
 
 class _JadwalDetailPageState extends State<JadwalDetailPage> {
   bool _isLoading = true;
-  Map<String, dynamic>? _jadwalData;
+  Jadwal? _jadwal;
   String _errorMessage = '';
 
   @override
@@ -30,18 +31,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
     try {
       final jadwal = await JadwalService.getJadwalById(widget.jadwalId);
       setState(() {
-        _jadwalData = {
-          'id': jadwal.id,
-          'kelompok_id': jadwal.kelompokId,
-          'ruangan': jadwal.ruangan,
-          'waktu': jadwal.waktu.toIso8601String(),
-          'user_id': jadwal.userId,
-          'penguji1': jadwal.penguji1,
-          'penguji2': jadwal.penguji2,
-          'kelompok_nama': jadwal.kelompokNama,
-          'penguji1_nama': jadwal.penguji1Nama,
-          'penguji2_nama': jadwal.penguji2Nama,
-        };
+        _jadwal = jadwal;
         _isLoading = false;
       });
     } catch (e) {
@@ -102,14 +92,9 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
   }
 
   Widget _buildDetailView() {
-    if (_jadwalData == null) {
+    if (_jadwal == null) {
       return const Center(child: Text('No schedule data available'));
     }
-
-    // Format the date
-    final DateTime waktu = DateTime.parse(_jadwalData!['waktu']);
-    final String formattedDate = DateFormat('EEEE, d MMMM yyyy').format(waktu);
-    final String formattedTime = DateFormat('HH:mm').format(waktu);
 
     return Stack(
       children: [
@@ -198,7 +183,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Seminar Kelompok ${_jadwalData!['kelompok_nama'] ?? _jadwalData!['kelompok_id']}',
+                          'Seminar ${_jadwal!.kelompokNama ?? 'Kelompok ${_jadwal!.kelompokId}'}',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -207,7 +192,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Ruangan: ${_jadwalData!['ruangan']}',
+                          'Ruangan: ${_jadwal!.ruangan}',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white.withOpacity(0.9),
@@ -264,14 +249,14 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                                         child: _buildInfoItem(
                                           icon: Icons.calendar_today,
                                           title: 'Tanggal',
-                                          value: formattedDate,
+                                          value: _jadwal!.getFormattedDate(),
                                         ),
                                       ),
                                       Expanded(
                                         child: _buildInfoItem(
                                           icon: Icons.access_time,
                                           title: 'Waktu',
-                                          value: formattedTime,
+                                          value: _jadwal!.getFormattedTime(),
                                         ),
                                       ),
                                     ],
@@ -283,7 +268,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                                   _buildInfoItem(
                                     icon: Icons.room,
                                     title: 'Ruangan',
-                                    value: _jadwalData!['ruangan'],
+                                    value: _jadwal!.ruangan,
                                   ),
                                 ],
                               ),
@@ -317,7 +302,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                                   
                                   // Examiner 1
                                   _buildExaminerItem(
-                                    name: _jadwalData!['penguji1_nama'] ?? 'Penguji 1',
+                                    name: _jadwal!.penguji1Nama ?? 'Penguji 1',
                                     role: 'Penguji Utama',
                                   ),
                                   
@@ -325,7 +310,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                                   
                                   // Examiner 2
                                   _buildExaminerItem(
-                                    name: _jadwalData!['penguji2_nama'] ?? 'Penguji 2',
+                                    name: _jadwal!.penguji2Nama ?? 'Penguji 2',
                                     role: 'Penguji Pendamping',
                                   ),
                                 ],
@@ -362,7 +347,7 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                                   _buildInfoItem(
                                     icon: Icons.group,
                                     title: 'Kelompok',
-                                    value: _jadwalData!['kelompok_nama'] ?? 'Kelompok ${_jadwalData!['kelompok_id']}',
+                                    value: _jadwal!.kelompokNama ?? 'Kelompok ${_jadwal!.kelompokId}',
                                   ),
                                   
                                   const SizedBox(height: 12),
@@ -371,16 +356,12 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
                                   _buildInfoItem(
                                     icon: Icons.tag,
                                     title: 'ID Kelompok',
-                                    value: _jadwalData!['kelompok_id'].toString(),
+                                    value: _jadwal!.kelompokId.toString(),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          
-                          const SizedBox(height: 32),
-                          
-                          // Action Button
                         ],
                       ),
                     ),
@@ -489,4 +470,3 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
     );
   }
 }
-  

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_artefak/services/bimbingan_services.dart';
+import 'package:flutter_artefak/models/ruangan_model.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_artefak/providers/theme_provider.dart';
 import 'package:flutter_artefak/providers/language_provider.dart';
-import 'dart:ui';
 
 class RequestBimbinganPage extends StatefulWidget {
   const RequestBimbinganPage({super.key});
@@ -19,13 +19,16 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
   DateTime? _rencanaSelesai;
 
   final _keperluanController = TextEditingController();
-  final _lokasiController = TextEditingController();
+  int? _selectedRuanganId;
   final _deskripsiController = TextEditingController();
   
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
   bool _isSubmitting = false;
+  bool _isLoadingRuangan = true;
+  List<Ruangan> _ruanganList = [];
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -44,23 +47,43 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
       ),
     );
     
+    // Load ruangan data
+    _loadRuangan();
+    
     // Start animation after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _animationController.forward();
     });
   }
 
+  Future<void> _loadRuangan() async {
+    try {
+      final ruangans = await BimbinganService.getRuangans();
+      setState(() {
+        _ruanganList = ruangans;
+        _isLoadingRuangan = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoadingRuangan = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _keperluanController.dispose();
-    _lokasiController.dispose();
     _deskripsiController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _rencanaMulai == null || _rencanaSelesai == null) {
+    if (!_formKey.currentState!.validate() || 
+        _rencanaMulai == null || 
+        _rencanaSelesai == null || 
+        _selectedRuanganId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Lengkapi semua field yang wajib'),
@@ -91,13 +114,15 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
     try {
       final success = await BimbinganService.create(
         keperluan: _keperluanController.text,
-        rencanaMulai: _rencanaMulai!.toUtc(), // ⬅️ penting: kirim dalam UTC
-        rencanaSelesai: _rencanaSelesai!.toUtc(),
-        lokasi: _lokasiController.text,
+        rencanaMulai: _rencanaMulai!,
+        rencanaSelesai: _rencanaSelesai!,
+        ruanganId: _selectedRuanganId!,
       );
 
       if (success) {
         final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+        
+        if (!mounted) return;
         
         showDialog(
           context: context,
@@ -110,7 +135,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: const Color(0xFFE6FFFA),
                     shape: BoxShape.circle,
                   ),
@@ -152,6 +177,8 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
           ),
         );
       } else {
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Gagal mengirim permintaan'),
@@ -161,10 +188,28 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      
+      String errorMessage = 'Gagal mengirim permintaan';
+      if (e is NoGroupException) {
+        errorMessage = e.message;
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: const Color(0xFFE53E3E),
+        ),
+      );
     } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -420,15 +465,10 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
                             _buildDateTimePicker(dateTimeFormat),
                             const SizedBox(height: 24),
                             
-                            // Lokasi Field
-                            _buildFormLabel('Lokasi Bimbingan', true),
+                            // Ruangan Field
+                            _buildFormLabel('Ruangan Bimbingan', true),
                             const SizedBox(height: 8),
-                            _buildTextField(
-                              controller: _lokasiController,
-                              hintText: 'Tulis lokasi bimbingan',
-                              icon: Icons.location_on,
-                              validator: (value) => value!.isEmpty ? 'Lokasi wajib diisi' : null,
-                            ),
+                            _buildRuanganDropdown(),
                             const SizedBox(height: 24),
                             
                             // Deskripsi Field (Optional)
@@ -680,6 +720,105 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
     );
   }
 
+  Widget _buildRuanganDropdown() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    
+    if (_isLoadingRuangan) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: CircularProgressIndicator(
+            color: const Color(0xFF4299E1),
+            strokeWidth: 3,
+          ),
+        ),
+      );
+    }
+    
+    if (_errorMessage != null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF5F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE53E3E)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Color(0xFFE53E3E)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Gagal memuat ruangan: $_errorMessage',
+                style: const TextStyle(color: Color(0xFFE53E3E)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    return DropdownButtonFormField<int>(
+      value: _selectedRuanganId,
+      decoration: InputDecoration(
+        hintText: 'Pilih ruangan',
+        hintStyle: TextStyle(
+          color: themeProvider.isDarkMode 
+              ? Colors.white.withOpacity(0.3) 
+              : const Color(0xFFA0AEC0),
+          fontSize: 14,
+        ),
+        prefixIcon: const Icon(Icons.meeting_room, color: Color(0xFF4299E1), size: 20),
+        filled: true,
+        fillColor: themeProvider.isDarkMode 
+            ? const Color(0xFF1A202C) 
+            : const Color(0xFFF7FAFC),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: themeProvider.isDarkMode 
+                ? const Color(0xFF4A5568) 
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF4299E1), width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+        ),
+      ),
+      style: TextStyle(
+        fontSize: 14,
+        color: themeProvider.isDarkMode 
+            ? Colors.white 
+            : const Color(0xFF2D3748),
+      ),
+      dropdownColor: themeProvider.isDarkMode 
+          ? const Color(0xFF2D3748) 
+          : Colors.white,
+      items: _ruanganList.map((ruangan) {
+        return DropdownMenuItem<int>(
+          value: ruangan.id,
+          child: Text(ruangan.ruangan),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedRuanganId = value;
+        });
+      },
+      validator: (value) => value == null ? 'Ruangan wajib dipilih' : null,
+    );
+  }
+
   Widget _buildOutlinedButton({
     required VoidCallback onPressed,
     required String text,
@@ -705,7 +844,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
   }
 
   Widget _buildElevatedButton({
-    required VoidCallback? onPressed,
+    required VoidCallback? onPressed,   
     required String text,
   }) {
     return ElevatedButton(

@@ -129,7 +129,7 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
   @override
   Widget build(BuildContext context) {
     final bool hasSubmitted = _currentSubmit.submissionStatus != 'Belum';
-    final bool isDeadlinePassed = DateTime.now().isAfter(DateTime.parse(_currentSubmit.batas));
+    final bool isDeadlinePassed = DateTime.now().isAfter(DateTime.parse(_currentSubmit.tanggalPengumpulan));
     
     return Scaffold(
       backgroundColor: Colors.blueGrey.shade50,
@@ -163,21 +163,21 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                   _buildDetailSection(
                     icon: Icons.title_outlined,
                     label: "Judul",
-                    value: _currentSubmit.judul,
+                    value: _currentSubmit.judulTugas,
                     color: Colors.indigo.shade300,
                   ),
                   const SizedBox(height: 16),
                   _buildDetailSection(
                     icon: Icons.description_outlined,
                     label: "Instruksi",
-                    value: _currentSubmit.instruksi,
+                    value: _currentSubmit.deskripsiTugas,
                     color: Colors.teal.shade300,
                   ),
                   const SizedBox(height: 16),
                   _buildDetailSection(
                     icon: Icons.calendar_today_outlined,
                     label: "Batas Pengumpulan",
-                    value: DateFormat('dd MMMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.batas)),
+                    value: DateFormat('dd MMMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.tanggalPengumpulan)),
                     color: Colors.deepOrange.shade300,
                   ),
                   

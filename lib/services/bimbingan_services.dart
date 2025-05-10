@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bimbingan_model.dart';
+import '../models/ruangan_model.dart';
+import '../utils/api_constants.dart';
 
 class BimbinganService {
-  static const String baseUrl = "http://192.168.86.227:8080";
-
   // Kirim request bimbingan baru
   static Future<bool> create({
     required String keperluan,
     required DateTime rencanaMulai,
     required DateTime rencanaSelesai,
-    required String lokasi,
+    required int ruanganId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt');
@@ -22,14 +22,14 @@ class BimbinganService {
 
     final body = {
       "keperluan": keperluan,
-      "rencana_mulai": rencanaMulai.toIso8601String(),
-      "rencana_selesai": rencanaSelesai.toIso8601String(),
-      "lokasi": lokasi,
+      "rencana_mulai": rencanaMulai.toUtc().toIso8601String(),
+      "rencana_selesai": rencanaSelesai.toUtc().toIso8601String(),
+      "ruangan_id": ruanganId,
     };
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/bimbingan/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.bimbinganEndpoint}/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -38,7 +38,7 @@ class BimbinganService {
       );
 
       final responseData = jsonDecode(response.body);
-      
+
       if (response.statusCode == 201) {
         return true;
       } else if (responseData['status'] == 'no_group') {
@@ -67,7 +67,7 @@ class BimbinganService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/bimbingan'), 
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.bimbinganEndpoint}'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -75,12 +75,11 @@ class BimbinganService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        
-        // Check if the user doesn't have a group yet
+
         if (responseData['status'] == 'no_group') {
           throw NoGroupException("Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.");
         }
-        
+
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> jsonList = responseData['data'];
           return jsonList.map((json) => Bimbingan.fromJson(json)).toList();
@@ -98,13 +97,31 @@ class BimbinganService {
       throw Exception("Error: $e");
     }
   }
+
+  // Ambil semua ruangan
+  static Future<List<Ruangan>> getRuangans() async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConstants.baseUrl}${ApiConstants.ruangansEndpoint}'));
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final List<dynamic> jsonList = responseData['data'];
+        return jsonList.map((json) => Ruangan.fromJson(json)).toList();
+      } else {
+        throw Exception("Gagal memuat ruangan");
+      }
+    } catch (e) {
+      print("Error fetching ruangan: $e");
+      throw Exception("Gagal memuat ruangan: $e");
+    }
+  }
 }
 
-// Custom exception for no group case
+// Custom exception untuk user tanpa kelompok
 class NoGroupException implements Exception {
   final String message;
   NoGroupException(this.message);
-  
+
   @override
   String toString() => message;
 }

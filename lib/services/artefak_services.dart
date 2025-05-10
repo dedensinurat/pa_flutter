@@ -1,16 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
+import '../utils/api_constants.dart';
 
 class ArtefakService {
-  static const String baseUrl = "http://192.168.86.227:8080";
-
   Future<String> uploadFileForArtefak({
     required String filePath,
     required String token,
     required int artefakId,
   }) async {
-    final uri = Uri.parse('$baseUrl/artefak/upload/$artefakId');
+    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.artefakEndpoint}/upload/$artefakId');
     final request = http.MultipartRequest('POST', uri);
 
     request.headers['Authorization'] = 'Bearer $token';
@@ -31,7 +30,7 @@ class ArtefakService {
   }
 
   Future<List<Map<String, dynamic>>> getArtefakList(String token) async {
-    final uri = Uri.parse('$baseUrl/artefak/');
+    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.artefakEndpoint}/');
     final response = await http.get(
       uri,
       headers: {

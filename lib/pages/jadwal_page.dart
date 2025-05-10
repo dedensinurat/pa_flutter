@@ -1,31 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_artefak/pages/jadwal_page.dart';
-import '../models/submit_model.dart';
 import '../models/jadwal_model.dart';
-import '../services/submit_services.dart';
 import '../services/jadwal_service.dart';
-import '../pages/submit_detail_page.dart';
-import '../pages/jadwal_detail_page.dart';
 import '../widgets/jadwal_card.dart';
-import 'package:intl/intl.dart';
 import '../utils/enhanced_wavy_header.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+class JadwalPage extends StatefulWidget {
+  const JadwalPage({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<JadwalPage> createState() => _JadwalPageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
-  late Future<List<Submit>> _futureSubmits;
+class _JadwalPageState extends State<JadwalPage> with SingleTickerProviderStateMixin {
   late Future<List<Jadwal>> _futureJadwal;
-  bool _isRefreshing = false;
-
+  bool _isLoading = false;
+  
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -44,96 +35,43 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
     
-    _futureSubmits = _fetchSubmits();
     _futureJadwal = _fetchJadwal();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<List<Submit>> _fetchSubmits() async {
+  Future<List<Jadwal>> _fetchJadwal() async {
     setState(() {
-      _isRefreshing = true;
+      _isLoading = true;
     });
     
     try {
-      final result = await SubmitService.fetchSubmits();
-      
-      setState(() {
-        _isRefreshing = false;
-      });
-      
-      // Start animation after data is loaded
-      _animationController.forward();
-      
-      return result;
-    } catch (e) {
-      setState(() {
-        _isRefreshing = false;
-      });
-      throw e;
-    }
-  }
-
-  Future<List<Jadwal>> _fetchJadwal() async {
-    try {
       final jadwals = await JadwalService.getJadwal();
-      print('Fetched ${jadwals.length} jadwals');
+      
+      setState(() {
+        _isLoading = false;
+      });
       
       // Start animation after data is loaded
       _animationController.forward();
       
       return jadwals;
     } catch (e) {
-      print('Error fetching jadwal: $e');
-      return [];
+      setState(() {
+        _isLoading = false;
+      });
+      throw e;
     }
   }
 
   Future<void> _refreshData() async {
     setState(() {
-      _futureSubmits = _fetchSubmits();
       _futureJadwal = _fetchJadwal();
     });
-  }
-
-  String _formatDate(String dateString) {
-    final date = DateTime.parse(dateString);
-    return DateFormat('dd MMM yyyy').format(date);
-  }
-
-  String _getRemainingDays(String dateString) {
-    final deadline = DateTime.parse(dateString);
-    final now = DateTime.now();
-    final difference = deadline.difference(now).inDays;
-    
-    if (difference < 0) {
-      return 'Lewat batas';
-    } else if (difference == 0) {
-      return 'Hari ini';
-    } else {
-      return '$difference hari lagi';
-    }
-  }
-
-  Color _getDeadlineColor(String dateString) {
-    final deadline = DateTime.parse(dateString);
-    final now = DateTime.now();
-    final difference = deadline.difference(now).inDays;
-    
-    if (difference < 0) {
-      return const Color(0xFFE53E3E); // Red for past deadline
-    } else if (difference <= 2) {
-      return const Color(0xFFED8936); // Orange for close deadline
-    } else if (difference <= 7) {
-      return const Color(0xFFECC94B); // Yellow for approaching deadline
-    } else {
-      return const Color(0xFF38B2AC); // Green for far deadline
-    }
   }
 
   @override
@@ -200,7 +138,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               right: 0,
               child: AppBar(
                 title: const Text(
-                  'Vokasi Tera',
+                  'Jadwal Seminar',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 20,
@@ -211,14 +149,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 iconTheme: const IconThemeData(color: Colors.white),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/notifications');
-                    },
-                  ),
-                ],
               ),
             ),
 
@@ -238,7 +168,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Beranda',
+                              'Jadwal Seminar',
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -247,7 +177,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Jadwal dan tugas Anda',
+                              'Semua jadwal seminar Anda',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.white.withOpacity(0.9),
@@ -274,43 +204,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Jadwal Section
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Jadwal Seminar',
-                                    style: TextStyle(
-                                      fontFamily: 'Serif',
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2D3748),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const JadwalPage(),
-                                        ),
-                                      ).then((_) => _refreshData());
-                                    },
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: const Color(0xFF4299E1),
-                                    ),
-                                    child: const Text('Lihat Semua'),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 16),
-
                               // Jadwal List
                               FutureBuilder<List<Jadwal>>(
                                 future: _futureJadwal,
                                 builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
+                                  if (snapshot.connectionState == ConnectionState.waiting && _isLoading) {
                                     return _buildLoadingState('Memuat jadwal...');
                                   } else if (snapshot.hasError) {
                                     return _buildErrorState('Gagal memuat jadwal: ${snapshot.error}');
@@ -323,73 +221,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                   }
                                   
                                   final jadwalList = snapshot.data!;
-                                  // Show only the first 2 jadwal items
-                                  final displayedJadwals = jadwalList.length > 2 
-                                      ? jadwalList.sublist(0, 2) 
-                                      : jadwalList;
                                       
                                   return FadeTransition(
                                     opacity: _fadeAnimation,
                                     child: Column(
-                                      children: displayedJadwals.map((jadwal) => 
+                                      children: jadwalList.map((jadwal) => 
                                         JadwalCard(
                                           jadwal: jadwal,
                                           onRefresh: _refreshData,
                                         )
                                       ).toList(),
-                                    ),
-                                  );
-                                },
-                              ),
-
-                              const SizedBox(height: 24),
-
-                              // Tugas Section
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Tugas Terbaru',
-                                    style: TextStyle(
-                                      fontFamily: 'Serif',
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2D3748),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                ],
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              // Simple List view for tasks
-                              FutureBuilder<List<Submit>>(
-                                future: _futureSubmits,
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
-                                    return _buildLoadingState('Memuat daftar tugas...');
-                                  } else if (snapshot.hasError) {
-                                    return _buildErrorState(snapshot.error.toString());
-                                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                    return _buildEmptyState(
-                                      'Belum ada tugas',
-                                      'Tugas yang diberikan akan muncul di sini',
-                                      Icons.assignment_outlined
-                                    );
-                                  }
-                                  
-                                  final submits = snapshot.data!;
-                                  return FadeTransition(
-                                    opacity: _fadeAnimation,
-                                    child: ListView.separated(
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      itemCount: submits.length,
-                                      separatorBuilder: (context, index) => const SizedBox(height: 8),
-                                      itemBuilder: (context, index) {
-                                        final submit = submits[index];
-                                        return _buildSimpleTaskItem(context, submit, index);
-                                      },
                                     ),
                                   );
                                 },
@@ -553,104 +394,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleTaskItem(BuildContext context, Submit submit, int index) {
-    final iconColor = const Color(0xFF4A6572); // Blue-Grey color for all task icons
-    const icon = Icons.assignment_outlined; // Use assignment icon for all tasks
-    final deadlineColor = _getDeadlineColor(submit.tanggalPengumpulan);
-    final remainingDays = _getRemainingDays(submit.tanggalPengumpulan);
-
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Colors.grey.shade200, width: 0.5),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SubmitDetailPage(submit: submit),
-            ),
-          ).then((_) => _refreshData());
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              // Small icon
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 12),
-              
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Text(
-                      submit.judulTugas,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Serif',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2D3748),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    
-                    // Date
-                    Text(
-                      _formatDate(submit.tanggalPengumpulan),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Deadline chip
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: deadlineColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  remainingDays,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: deadlineColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

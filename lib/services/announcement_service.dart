@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/announcement_model.dart';
+import '../utils/api_constants.dart';
 
 class AnnouncementService {
-  static const String baseUrl = 'http://192.168.86.227:8080';
-
   // Get all announcements
   static Future<List<Announcement>> getAnnouncements() async {
     final prefs = await SharedPreferences.getInstance();
@@ -15,7 +14,7 @@ class AnnouncementService {
       throw Exception('Not authenticated');
     }
 
-    final url = Uri.parse("$baseUrl/pengumuman");
+    final url = Uri.parse("${ApiConstants.baseUrl}${ApiConstants.pengumumanEndpoint}");
     
     try {
       final response = await http.get(
@@ -49,7 +48,7 @@ class AnnouncementService {
       throw Exception('Not authenticated');
     }
 
-    final url = Uri.parse("$baseUrl/pengumuman/$id");
+    final url = Uri.parse("${ApiConstants.baseUrl}${ApiConstants.pengumumanEndpoint}/$id");
     
     try {
       final response = await http.get(

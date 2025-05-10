@@ -1,34 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/jadwal_model.dart';
 import '../pages/jadwal_detail_page.dart';
 
 class JadwalCard extends StatelessWidget {
   final Jadwal jadwal;
-  final Function onRefresh;
+  final Function? onRefresh;
 
   const JadwalCard({
     Key? key,
     required this.jadwal,
-    required this.onRefresh,
+    this.onRefresh,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Format the date
-    final String formattedDate = DateFormat('EEEE, d MMMM yyyy').format(jadwal.waktu);
-    final String formattedTime = DateFormat('HH:mm').format(jadwal.waktu);
-    
-    // Get status color
-    final Color statusColor = jadwal.getStatusColor();
-    final String statusText = jadwal.getStatusText();
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
+      elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
         onTap: () {
@@ -37,9 +27,13 @@ class JadwalCard extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => JadwalDetailPage(jadwalId: jadwal.id),
             ),
-          ).then((_) => onRefresh());
+          ).then((_) {
+            if (onRefresh != null) {
+              onRefresh!();
+            }
+          });
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -48,126 +42,114 @@ class JadwalCard extends StatelessWidget {
               // Header with status
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.event_note,
-                      color: Colors.blue.shade700,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Seminar Kelompok ${jadwal.kelompokNama ?? jadwal.kelompokId.toString()}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Ruangan: ${jadwal.ruangan}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Seminar ${jadwal.kelompokNama ?? 'Kelompok ${jadwal.kelompokId}'}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3748),
+                      ),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: jadwal.getStatusColor().withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      statusText,
+                      jadwal.getStatusText(),
                       style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w500,
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: jadwal.getStatusColor(),
                       ),
                     ),
                   ),
                 ],
               ),
               
-              const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               // Date and time
               Row(
                 children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            formattedDate,
-                            style: TextStyle(
-                              color: Colors.grey[800],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Color(0xFF718096),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    jadwal.getFormattedDate(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF718096),
                     ),
                   ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        formattedTime,
-                        style: TextStyle(
-                          color: Colors.grey[800],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(width: 16),
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: Color(0xFF718096),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    jadwal.getFormattedTime(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF718096),
+                    ),
                   ),
                 ],
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
-              // Examiners
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Location
+              Row(
                 children: [
-                  const Text(
-                    'Penguji:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
+                  const Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: Color(0xFF718096),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      jadwal.ruangan,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF718096),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${jadwal.penguji1Nama ?? 'Penguji 1'}, ${jadwal.penguji2Nama ?? 'Penguji 2'}',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
+                ],
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Examiners
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person,
+                    size: 16,
+                    color: Color(0xFF718096),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Penguji: ${jadwal.penguji1Nama}${jadwal.penguji2Nama != null ? ', ${jadwal.penguji2Nama}' : ''}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF718096),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

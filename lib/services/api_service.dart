@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_artefak/models/student_model.dart';
+import '../utils/api_constants.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.86.227:8080';
-  static const String externalApiUrl = "https://cis-dev.del.ac.id/api";
-
   static Future<Map<String, dynamic>> login(String username, String password) async {
-    final url = Uri.parse("$baseUrl/login");
+    final url = Uri.parse("${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}");
 
     final response = await http.post(
       url,
@@ -100,7 +98,7 @@ class ApiService {
     }
 
     // Option 1: Fetch directly from external API
-    final url = Uri.parse("$externalApiUrl/library-api/mahasiswa?username=$username");
+    final url = Uri.parse("${ApiConstants.externalApiUrl}${ApiConstants.externalStudentEndpoint}?username=$username");
     
     try {
       final response = await http.get(
@@ -125,37 +123,5 @@ class ApiService {
       print('Error fetching student data: $e');
       return null;
     }
-
-    // Option 2: Fetch through your backend proxy (if you prefer)
-    /*
-    final internalToken = await getToken();
-    if (internalToken == null) return null;
-
-    final url = Uri.parse("$baseUrl/api/student?username=$username");
-    
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          "Authorization": "Bearer $internalToken",
-          "Content-Type": "application/json",
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['result'] == 'Ok' && 
-            data['data'] != null && 
-            data['data']['mahasiswa'] != null && 
-            data['data']['mahasiswa'].isNotEmpty) {
-          return Student.fromJson(data['data']['mahasiswa'][0]);
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Error fetching student data: $e');
-      return null;
-    }
-    */
   }
 }

@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/Semester 4/PA II/pa_flutter/linux/runner"
+    "cmake.sourceDirectory": "D:/Semester 4/PA II/pa_flutter/linux/runner",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

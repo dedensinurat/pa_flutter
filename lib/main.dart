@@ -10,6 +10,7 @@ import 'pages/artefak/dokumen_pengembangan_page.dart';
 // import 'pages/artefak/upload_page.dart';
 import 'widgets/bottom_navbar.dart';
 import 'package:flutter_artefak/providers/theme_provider.dart';
+import 'package:flutter_artefak/pages/jadwal_page.dart';
 
 
 void main() {
@@ -41,6 +42,7 @@ class MyApp extends StatelessWidget {
             '/main': (context) => const MainScreen(),
             // '/upload': (context) => FileUploadScreen(),
             '/dokumen': (context) => const DokumenPengembanganPage(),
+             '/jadwal': (context) => const JadwalPage(),
           },
         );
       },
