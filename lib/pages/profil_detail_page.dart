@@ -5,12 +5,17 @@ import 'package:provider/provider.dart';
 import 'package:flutter_artefak/providers/theme_provider.dart';
 import 'package:flutter_artefak/providers/language_provider.dart';
 import 'dart:math' as math;
+import 'package:shimmer/shimmer.dart';
 
 class ProfileDetailPage extends StatefulWidget {
-  const ProfileDetailPage({super.key});
+  const
+  ProfileDetailPage({super.key});
 
   @override
-  State<ProfileDetailPage> createState() => _ProfileDetailPageState();
+  State<ProfileDetailPage>
+  createState()
+  =>
+  _ProfileDetailPageState();
 }
 
 class _ProfileDetailPageState extends State<ProfileDetailPage> with SingleTickerProviderStateMixin {
@@ -107,7 +112,7 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> with SingleTicker
           ],
         ),
         body: _isLoading
-            ? _buildLoading(themeProvider)
+            ? _buildSkeletonLoading(themeProvider)
             : _errorMessage.isNotEmpty
                 ? _buildError()
                 : _buildProfileContent(),
@@ -115,54 +120,204 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> with SingleTicker
     );
   }
 
-  Widget _buildLoading(ThemeProvider themeProvider) {
-    return Center(
+  Widget _buildSkeletonLoading(ThemeProvider themeProvider) {
+    final baseColor = themeProvider.isDarkMode 
+        ? const Color(0xFF2D3748) 
+        : Colors.grey[300]!;
+    final highlightColor = themeProvider.isDarkMode 
+        ? const Color(0xFF4A5568) 
+        : Colors.grey[100]!;
+
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 1000),
-            builder: (context, value, child) {
-              return Transform.rotate(
-                angle: value * 2 * math.pi,
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF4299E1),
-                      width: 3,
-                      strokeAlign: BorderSide.strokeAlignOutside,
+          // Header skeleton
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            decoration: BoxDecoration(
+              color: themeProvider.isDarkMode ? const Color(0xFF2D3748) : Colors.white,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x0A000000),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Column(
+                children: [
+                  // Avatar skeleton
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  child: const Center(
-                    child: SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF4299E1),
-                        strokeWidth: 3,
-                      ),
+                  const SizedBox(height: 16),
+                  
+                  // Name skeleton
+                  Container(
+                    width: 200,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // NIM skeleton
+                  Container(
+                    width: 150,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Status skeleton
+                  Container(
+                    width: 80,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Academic info skeleton
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Section title skeleton
+                Shimmer.fromColors(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  child: Container(
+                    width: 180,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "Memuat data...",
-            style: TextStyle(
-              color: themeProvider.isDarkMode 
-                  ? Colors.white.withOpacity(0.7) 
-                  : const Color(0xFF4A5568),
-              fontSize: 16,
+                const SizedBox(height: 16),
+                
+                // Info cards skeleton
+                ...List.generate(
+                  6, // Number of info cards
+                  (index) => _buildInfoCardSkeleton(
+                    themeProvider, 
+                    baseColor, 
+                    highlightColor,
+                    // Add staggered delay for each card
+                    delay: Duration(milliseconds: 100 * index),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCardSkeleton(
+    ThemeProvider themeProvider, 
+    Color baseColor, 
+    Color highlightColor,
+    {Duration delay = Duration.zero}
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode ? const Color(0xFF2D3748) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x0A000000),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Icon container skeleton
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              period: const Duration(milliseconds: 1500) + delay,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            
+            // Text content skeleton
+            Expanded(
+              child: Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                period: const Duration(milliseconds: 1500) + delay,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title skeleton
+                    Container(
+                      width: 80,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Value skeleton
+                    Container(
+                      width: double.infinity,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -211,7 +366,7 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> with SingleTicker
     }
 
     final int nameHash = _student!.nama.hashCode;
-    final Color avatarColor = Color((nameHash & 0xFFFFFF) | 0xFF4299E1).withOpacity(1.0);
+    final avatarColor = Color((nameHash & 0xFFFFFF) | 0xFF4299E1).withOpacity(1.0);
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -266,7 +421,7 @@ class _ProfileDetailPageState extends State<ProfileDetailPage> with SingleTicker
                   ),
                   child: CircleAvatar(
                     radius: 60,
-                    backgroundColor: avatarColor,
+                    backgroundColor: Color(0xFF4299E1),
                     child: Text(
                       _student!.nama.isNotEmpty ? _student!.nama[0].toUpperCase() : '?',
                       style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),

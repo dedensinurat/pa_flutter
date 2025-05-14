@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_artefak/providers/theme_provider.dart';
 import '../models/announcement_model.dart';
 import '../services/announcement_service.dart';
+import 'package:shimmer/shimmer.dart';
 
 class AnnouncementDetailPage extends StatefulWidget {
   final int announcementId;
@@ -18,6 +21,7 @@ class AnnouncementDetailPage extends StatefulWidget {
 class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
   late Future<Announcement> _announcementFuture;
   bool mounted = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -32,7 +36,27 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
   }
 
   void _loadAnnouncementDetails() {
-    _announcementFuture = AnnouncementService.getAnnouncementById(widget.announcementId);
+    setState(() {
+      _isLoading = true;
+    });
+    
+    _announcementFuture = AnnouncementService.getAnnouncementById(widget.announcementId)
+      .then((result) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return result;
+      })
+      .catchError((error) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        throw error;
+      });
   }
 
   Future<void> openAttachment(String filePath) async {
@@ -59,155 +83,313 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Announcement Details',
-          style: TextStyle(color: Colors.black87),
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    
+    return Theme(
+      data: themeProvider.themeData,
+      child: Scaffold(
+        backgroundColor: isDarkMode ? const Color(0xFF1A202C) : Colors.white,
+        appBar: AppBar(
+          title: Text(
+            'Announcement Details',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87
+            ),
+          ),
+          backgroundColor: isDarkMode ? const Color(0xFF2D3748) : Colors.white,
+          elevation: 0,
+          iconTheme: IconThemeData(
+            color: isDarkMode ? Colors.white : Colors.black87
+          ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
-      body: FutureBuilder<Announcement>(
-        future: _announcementFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Error loading announcement details',
-                    style: TextStyle(color: Colors.red[700]),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadAnnouncementDetails,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          } else if (!snapshot.hasData) {
-            return const Center(
-              child: Text('Announcement not found'),
-            );
-          } else {
-            final announcement = snapshot.data!;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with date
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.announcement_outlined,
-                        size: 20,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'VokasiTera',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${announcement.tanggalPenulisan.day}/${announcement.tanggalPenulisan.month}/${announcement.tanggalPenulisan.year}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Title
-                  Text(
-                    announcement.judul,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Content
-                  Text(
-                    announcement.deskripsi,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Attachment if available
-                  if (announcement.file != null && announcement.file!.isNotEmpty)
-                    InkWell(
-                      onTap: () {
-                        openAttachment(announcement.file!);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.attach_file,
-                              color: Colors.blue,
+        body: _isLoading
+            ? _buildSkeletonLoading(isDarkMode)
+            : FutureBuilder<Announcement>(
+                future: _announcementFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Error loading announcement details',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.red[400] : Colors.red[700]
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Attachment',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadAnnouncementDetails,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDarkMode ? const Color(0xFF4299E1) : Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else if (!snapshot.hasData) {
+                    return Center(
+                      child: Text(
+                        'Announcement not found',
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87
+                        ),
+                      ),
+                    );
+                  } else {
+                    final announcement = snapshot.data!;
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header with date
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.announcement_outlined,
+                                size: 20,
+                                color: isDarkMode ? const Color(0xFF63B3ED) : Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'VokasiTera',
+                                style: TextStyle(
+                                  color: isDarkMode ? const Color(0xFF63B3ED) : Colors.blue,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${announcement.tanggalPenulisan.day}/${announcement.tanggalPenulisan.month}/${announcement.tanggalPenulisan.year}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Title
+                          Text(
+                            announcement.judul,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Content
+                          Text(
+                            announcement.deskripsi,
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                              color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Attachment if available
+                          if (announcement.file != null && announcement.file!.isNotEmpty)
+                            InkWell(
+                              onTap: () {
+                                openAttachment(announcement.file!);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: isDarkMode 
+                                      ? const Color(0xFF2C5282).withOpacity(0.3) 
+                                      : Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.attach_file,
+                                      color: isDarkMode ? const Color(0xFF63B3ED) : Colors.blue,
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _getFileName(announcement.file!),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[700],
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Attachment',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: isDarkMode ? const Color(0xFF63B3ED) : Colors.blue,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _getFileName(announcement.file!),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDarkMode 
+                                                  ? Colors.white.withOpacity(0.7) 
+                                                  : Colors.grey[700],
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                    Icon(
+                                      Icons.download,
+                                      color: isDarkMode ? const Color(0xFF63B3ED) : Colors.blue,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            const Icon(
-                              Icons.download,
-                              color: Colors.blue,
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
+                    );
+                  }
+                },
+              ),
+      ),
+    );
+  }
+  
+  Widget _buildSkeletonLoading(bool isDarkMode) {
+    final baseColor = isDarkMode ? const Color(0xFF2D3748) : Colors.grey[300]!;
+    final highlightColor = isDarkMode ? const Color(0xFF4A5568) : Colors.grey[100]!;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Shimmer.fromColors(
+        baseColor: baseColor,
+        highlightColor: highlightColor,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with date
+            Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 80,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  width: 80,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Title
+            Container(
+              width: double.infinity,
+              height: 20,
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Content - multiple lines
+            Column(
+              children: List.generate(5, (index) => 
+                Container(
+                  width: double.infinity,
+                  height: 16,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Attachment
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                      shape: BoxShape.circle,
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: 150,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF4A5568) : Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ],
               ),
-            );
-          }
-        },
+            ),
+          ],
+        ),
       ),
     );
   }

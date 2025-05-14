@@ -1,282 +1,315 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/submit_model.dart';
+import '../utils/api_constants.dart';
 
 class SubmitService {
-  // Base URL of the backend
-  static const String baseUrl = "http://192.168.41.227:8080";
-  static const Duration timeoutDuration = Duration(seconds: 15);
+  static const Duration timeoutDuration = Duration(seconds: 60); // Increased timeout
 
-  // Cache mechanism to reduce API calls
-  static List<Submit>? _cachedSubmits;
-  static DateTime? _lastFetchTime;
-  static const Duration _cacheValidDuration = Duration(minutes: 5);
-
-  // Method to fetch all submits with cache mechanism
-  static Future<List<Submit>> fetchSubmits({bool forceRefresh = false}) async {
-    // Return cached data if available and not expired
-    if (!forceRefresh && _cachedSubmits != null && _lastFetchTime != null) {
-      final difference = DateTime.now().difference(_lastFetchTime!);
-      if (difference < _cacheValidDuration) {
-        return _cachedSubmits!;
-      }
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt');
-
-    if (token == null) {
-      throw Exception("Token tidak ditemukan, silakan login kembali");
-    }
-
+  // Method to fetch all assignments
+  static Future<List<Submit>> fetchSubmits() async {
     try {
+      print('Fetching all assignments');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt');
+
+      if (token == null) {
+        throw Exception("Token tidak ditemukan, silakan login kembali");
+      }
+
       final response = await http.get(
-        Uri.parse('$baseUrl/pengumpulan'),
+        Uri.parse('${ApiConstants.baseUrl}/pengumpulan'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       ).timeout(timeoutDuration);
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         
-        // Check if the user doesn't have a group yet
-        if (responseData['status'] == 'no_group') {
-          throw NoGroupException("Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.");
-        }
-        
-        if (responseData.containsKey('data') && responseData['data'] is List) {
-          List<dynamic> body = responseData['data'];
-          _cachedSubmits = body.map((e) => Submit.fromJson(e)).toList();
-          _lastFetchTime = DateTime.now();
-          return _cachedSubmits!;
+        if (responseData['status'] == 'success') {
+          // Check if user has a kelompok
+          final bool hasKelompok = responseData['has_kelompok'] ?? true;
+          
+          // Store the message for later use
+          if (responseData['message'] != null) {
+            prefs.setString('submission_message', responseData['message']);
+          }
+          
+          // Store the kelompok status
+          prefs.setBool('has_kelompok', hasKelompok);
+          
+          if (responseData['data'] != null) {
+            final List<dynamic> tugasList = responseData['data'];
+            print('Fetched ${tugasList.length} assignments');
+            return tugasList.map((json) => Submit.fromJson(json)).toList();
+          } else {
+            print('No assignments data in response');
+            return [];
+          }
         } else {
-          throw Exception("Format respons tidak sesuai");
+          print('Error in response data: ${responseData['message']}');
+          throw Exception(responseData['message'] ?? 'Gagal mengambil data tugas');
         }
       } else if (response.statusCode == 401) {
-        // Handle token expiration
+        print('Unauthorized, refreshing token');
         await _refreshToken();
-        // Retry the request once after refreshing token
-        return fetchSubmits();
+        return fetchSubmits(); // Retry after refreshing token
       } else {
-        throw Exception("Gagal mengambil data: ${response.statusCode} - ${response.body}");
+        print('Failed with status code: ${response.statusCode}');
+        throw Exception('Failed to load assignments: ${response.statusCode}');
       }
-    } on http.ClientException catch (e) {
-      throw Exception("Koneksi gagal: ${e.message}. Periksa koneksi internet Anda.");
     } catch (e) {
-      if (e is NoGroupException) {
-        throw e;
-      }
-      throw Exception("Error: $e");
+      print('Error fetching assignments: $e');
+      throw Exception('Gagal mengambil data tugas: $e');
     }
   }
 
-  // Method to fetch a single submit by ID
+  // Method to fetch a specific assignment by ID
   static Future<Submit> fetchSubmitById(int id) async {
-    // Check if we have this submit in cache first
-    if (_cachedSubmits != null) {
-      final cachedSubmit = _cachedSubmits!.firstWhere(
-        (submit) => submit.id == id,
-        orElse: () => Submit(
-          id: 0,
-          userId: 0,
-          judulTugas: '',
-          deskripsiTugas: '',
-          kpaId: 0,
-          prodiId: 0,
-          tmId: 0,
-          tanggalPengumpulan: '',
-          file: '',
-        ),
-      );
-      
-      // If found in cache and not the default empty submit, return it
-      if (cachedSubmit.id != 0) {
-        return cachedSubmit;
-      }
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt');
-
-    if (token == null) {
-      throw Exception("Token tidak ditemukan, silakan login kembali");
-    }
-
     try {
+      print('Fetching assignment with ID: $id');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt');
+
+      if (token == null) {
+        throw Exception("Token tidak ditemukan, silakan login kembali");
+      }
+
       final response = await http.get(
-        Uri.parse('$baseUrl/pengumpulan/$id'),
+        Uri.parse('${ApiConstants.baseUrl}/pengumpulan/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       ).timeout(timeoutDuration);
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         
-        // Check if the user doesn't have a group yet
-        if (responseData['status'] == 'no_group') {
-          throw NoGroupException("Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.");
-        }
-        
-        if (responseData.containsKey('data')) {
-          final submit = Submit.fromJson(responseData['data']);
+        if (responseData['status'] == 'success') {
+          // Check if user has a kelompok
+          final bool hasKelompok = responseData['has_kelompok'] ?? true;
           
-          // Update the item in cache if it exists
-          if (_cachedSubmits != null) {
-            final index = _cachedSubmits!.indexWhere((s) => s.id == id);
-            if (index >= 0) {
-              _cachedSubmits![index] = submit;
-            }
+          // Store the message for later use
+          if (responseData['message'] != null) {
+            prefs.setString('submission_message', responseData['message']);
           }
           
-          return submit;
+          // Store the kelompok status
+          prefs.setBool('has_kelompok', hasKelompok);
+          
+          if (responseData['data'] != null) {
+            print('Successfully fetched assignment details');
+            return Submit.fromJson(responseData['data']);
+          } else {
+            print('No assignment data in response');
+            throw Exception('Data tugas tidak ditemukan');
+          }
         } else {
-          throw Exception("Format respons tidak sesuai");
+          print('Error in response data: ${responseData['message']}');
+          throw Exception(responseData['message'] ?? 'Gagal mengambil data tugas');
         }
       } else if (response.statusCode == 401) {
-        // Handle token expiration
+        print('Unauthorized, refreshing token');
         await _refreshToken();
-        // Retry the request once after refreshing token
-        return fetchSubmitById(id);
+        return fetchSubmitById(id); // Retry after refreshing token
       } else {
-        throw Exception("Gagal mengambil detail submitan: ${response.statusCode} - ${response.body}");
+        print('Failed with status code: ${response.statusCode}');
+        throw Exception('Failed to load assignment: ${response.statusCode}');
       }
-    } on http.ClientException catch (e) {
-      throw Exception("Koneksi gagal: ${e.message}. Periksa koneksi internet Anda.");
     } catch (e) {
-      if (e is NoGroupException) {
-        throw e;
-      }
-      throw Exception("Error: $e");
+      print('Error fetching assignment: $e');
+      throw Exception('Gagal mengambil data tugas: $e');
     }
   }
 
   // Method to upload a submit file
   static Future<String> uploadSubmit(int tugasId, String filePath) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt');
-
-    if (token == null) {
-      throw Exception("Token tidak ditemukan, silakan login kembali");
-    }
-
     try {
-      final uri = Uri.parse('$baseUrl/pengumpulan/$tugasId/upload');
-      final request = http.MultipartRequest('POST', uri);
+      print('Uploading file for task ID: $tugasId');
+      print('File path: $filePath');
       
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt');
+      final hasKelompok = prefs.getBool('has_kelompok') ?? false;
+
+      if (token == null) {
+        throw Exception("Token tidak ditemukan, silakan login kembali");
+      }
+      
+      // Check if user has a kelompok
+      if (!hasKelompok) {
+        return 'Error: Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung dengan kelompok.';
+      }
+
+      // Check if file exists
+      final file = File(filePath);
+      if (!await file.exists()) {
+        print('File not found at path: $filePath');
+        return 'Error: File tidak ditemukan di lokasi: $filePath';
+      }
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}/pengumpulan/$tugasId/upload');
+      final request = http.MultipartRequest('POST', uri);
+
+      // Add the authorization header
       request.headers['Authorization'] = 'Bearer $token';
+      
+      // Add the file to the request
       request.files.add(await http.MultipartFile.fromPath(
         'file',
         filePath,
       ));
 
+      print('Sending request to: $uri');
+      print('Headers: ${request.headers}');
+      print('Files: ${request.files.length}');
+
+      // Send the request
       final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamedResponse);
+      
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
       final responseBody = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Invalidate cache after successful upload
-        _cachedSubmits = null;
-        _lastFetchTime = null;
+        _clearAllCaches();
+        print('File uploaded successfully');
         return 'File berhasil diunggah!';
       } else if (response.statusCode == 401) {
+        print('Unauthorized, refreshing token');
         await _refreshToken();
-        return uploadSubmit(tugasId, filePath);
-      } else if (responseBody['status'] == 'no_group') {
-        return 'Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.';
+        return uploadSubmit(tugasId, filePath); // Retry after refreshing the token
       } else {
+        print('Error response: ${response.statusCode} - ${response.body}');
         return 'Gagal unggah: ${responseBody['message'] ?? responseBody['error']}';
       }
     } on http.ClientException catch (e) {
+      print('Client exception: ${e.message}');
       return 'Koneksi gagal: ${e.message}. Periksa koneksi internet Anda.';
     } catch (e) {
+      print('General error: $e');
       return 'Error: $e';
     }
   }
 
-  // Method to update a submit file
+  // Method to update an existing submission
   static Future<String> updateSubmit(int tugasId, String filePath) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt');
-
-    if (token == null) {
-      throw Exception("Token tidak ditemukan, silakan login kembali");
-    }
-
     try {
-      final uri = Uri.parse('$baseUrl/pengumpulan/$tugasId/update');
-      final request = http.MultipartRequest('PUT', uri);
+      print('Updating submission for task ID: $tugasId');
+      print('File path: $filePath');
       
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt');
+      final hasKelompok = prefs.getBool('has_kelompok') ?? false;
+
+      if (token == null) {
+        throw Exception("Token tidak ditemukan, silakan login kembali");
+      }
+      
+      // Check if user has a kelompok
+      if (!hasKelompok) {
+        return 'Error: Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung dengan kelompok.';
+      }
+
+      // Check if file exists
+      final file = File(filePath);
+      if (!await file.exists()) {
+        print('File not found at path: $filePath');
+        return 'Error: File tidak ditemukan di lokasi: $filePath';
+      }
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}/pengumpulan/$tugasId/upload');
+      final request = http.MultipartRequest('PUT', uri);
+
+      // Add the authorization header
       request.headers['Authorization'] = 'Bearer $token';
+      
+      // Add the file to the request
       request.files.add(await http.MultipartFile.fromPath(
         'file',
         filePath,
       ));
 
+      print('Sending request to: $uri');
+      print('Headers: ${request.headers}');
+      print('Files: ${request.files.length}');
+
+      // Send the request
       final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamedResponse);
+      
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
       final responseBody = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Invalidate cache after successful update
-        _cachedSubmits = null;
-        _lastFetchTime = null;
+        _clearAllCaches();
+        print('File updated successfully');
         return 'File berhasil diperbarui!';
       } else if (response.statusCode == 401) {
+        print('Unauthorized, refreshing token');
         await _refreshToken();
-        return updateSubmit(tugasId, filePath);
-      } else if (responseBody['status'] == 'no_group') {
-        return 'Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.';
+        return updateSubmit(tugasId, filePath); // Retry after refreshing the token
       } else {
+        print('Error response: ${response.statusCode} - ${response.body}');
         return 'Gagal memperbarui: ${responseBody['message'] ?? responseBody['error']}';
       }
     } on http.ClientException catch (e) {
+      print('Client exception: ${e.message}');
       return 'Koneksi gagal: ${e.message}. Periksa koneksi internet Anda.';
     } catch (e) {
+      print('General error: $e');
       return 'Error: $e';
     }
   }
 
-  // Helper method to refresh token if needed
   static Future<void> _refreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final refreshToken = prefs.getString('refreshToken');
+    try {
+      print('Refreshing token');
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString('refreshToken');
+      if (refreshToken == null) {
+        throw Exception("Refresh token tidak ditemukan.");
+      }
 
-    if (refreshToken == null) {
-      throw Exception("Sesi telah berakhir, silakan login kembali");
-    }
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/refresh_token'),
+        body: {'refreshToken': refreshToken},
+      );
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/refresh_token'),
-      body: {'refreshToken': refreshToken},
-    );
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-      final newToken = responseData['accessToken'];
-      prefs.setString('jwt', newToken);  // Save new token to SharedPreferences
-    } else {
-      throw Exception("Gagal memperbarui token");
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final newToken = responseData['accessToken'];
+        prefs.setString('jwt', newToken);  // Save the new token
+        print('Token refreshed successfully');
+      } else {
+        print('Failed to refresh token: ${response.statusCode}');
+        throw Exception("Gagal memperbarui token");
+      }
+    } catch (e) {
+      print('Error refreshing token: $e');
+      throw Exception("Gagal memperbarui token: $e");
     }
   }
 
-  // Method to clear cache manually
-  static void clearCache() {
-    _cachedSubmits = null;
-    _lastFetchTime = null;
+  // Method to clear all caches
+  static void _clearAllCaches() {
+    print('All caches cleared');
   }
 }
-  
-// Custom exception for no group case
-class NoGroupException implements Exception {
-  final String message;
-  NoGroupException(this.message);
-
-  @override
-  String toString() => message;
-}
- 

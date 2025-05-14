@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_artefak/providers/theme_provider.dart';
 import 'package:flutter_artefak/providers/language_provider.dart';
+import 'package:shimmer/shimmer.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -13,6 +14,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  bool _isLoading = true;
   
   @override
   void initState() {
@@ -31,9 +33,15 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
       ),
     );
     
-    // Start animation after build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _animationController.forward();
+    // Simulate loading
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        // Start animation after build
+        _animationController.forward();
+      }
     });
   }
 
@@ -143,9 +151,9 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Kustomisasi',
-                            style: TextStyle(
+                          Text(
+                            languageProvider.translate('customization'),
+                            style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -153,7 +161,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sesuaikan tampilan aplikasi',
+                            languageProvider.translate('customize_app'),
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.white.withOpacity(0.9),
@@ -178,41 +186,168 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                             topRight: Radius.circular(30),
                           ),
                         ),
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Theme Section
-                                  _buildSectionTitle('Mode Tampilan'),
-                                  const SizedBox(height: 16),
-                                  _buildThemeSelector(themeProvider),
-                                  
-                                  const SizedBox(height: 32),
-                                  
-                                  // Language Section
-                                  _buildSectionTitle('Pilihan Bahasa'),
-                                  const SizedBox(height: 16),
-                                  _buildLanguageSelector(languageProvider),
-                                  
-                                  const SizedBox(height: 32),
-                                  
-                                  // Info Card
-                                  _buildInfoCard(),
-                                  
-                                  const SizedBox(height: 24),
-                                ],
+                        child: _isLoading 
+                            ? _buildSkeletonLoading(themeProvider)
+                            : FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Theme Section
+                                        _buildSectionTitle(languageProvider.translate('display_mode')),
+                                        const SizedBox(height: 16),
+                                        _buildThemeSelector(themeProvider, languageProvider),
+                                        
+                                        const SizedBox(height: 32),
+                                        
+                                        // Language Section
+                                        _buildSectionTitle(languageProvider.translate('language_selection')),
+                                        const SizedBox(height: 16),
+                                        _buildLanguageSelector(languageProvider),
+                                        
+                                        const SizedBox(height: 32),
+                                        
+                                        // Info Card
+                                        _buildInfoCard(languageProvider),
+                                        
+                                        const SizedBox(height: 24),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoading(ThemeProvider themeProvider) {
+    final baseColor = themeProvider.isDarkMode 
+        ? const Color(0xFF2D3748) 
+        : Colors.grey[300]!;
+    final highlightColor = themeProvider.isDarkMode 
+        ? const Color(0xFF4A5568) 
+        : Colors.grey[100]!;
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Theme Section Title Skeleton
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 120,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Theme Selector Skeleton
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Language Section Title Skeleton
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 150,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Language Selector Skeleton
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Info Card Skeleton
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Container(
+                width: double.infinity,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                  ),
                 ),
               ),
             ),
@@ -250,7 +385,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildThemeSelector(ThemeProvider themeProvider) {
+  Widget _buildThemeSelector(ThemeProvider themeProvider, LanguageProvider languageProvider) {
     return Container(
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode 
@@ -270,12 +405,12 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
         children: [
           // Light Mode Option
           _buildThemeOption(
-            title: 'Mode Terang',
+            title: languageProvider.translate('light_mode'),
             icon: Icons.light_mode,
             isSelected: !themeProvider.isDarkMode,
             onTap: () {
               themeProvider.setTheme(false);
-              _showFeedbackSnackbar('Mode terang diaktifkan');
+              _showFeedbackSnackbar(languageProvider.translate('light_mode_enabled'));
             },
           ),
           
@@ -291,12 +426,12 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
           
           // Dark Mode Option
           _buildThemeOption(
-            title: 'Mode Gelap',
+            title: languageProvider.translate('dark_mode'),
             icon: Icons.dark_mode,
             isSelected: themeProvider.isDarkMode,
             onTap: () {
               themeProvider.setTheme(true);
-              _showFeedbackSnackbar('Mode gelap diaktifkan');
+              _showFeedbackSnackbar(languageProvider.translate('dark_mode_enabled'));
             },
           ),
         ],
@@ -410,7 +545,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                 isSelected: isSelected,
                 onTap: () {
                   languageProvider.setLanguage(language);
-                  _showFeedbackSnackbar('Bahasa diubah ke $language');
+                  _showFeedbackSnackbar('${languageProvider.translate('language_changed')} $language');
                 },
               ),
               if (!isLast)
@@ -501,7 +636,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(LanguageProvider languageProvider) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     
     return Container(
@@ -540,7 +675,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Informasi',
+                  languageProvider.translate('information'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -551,7 +686,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Pengaturan akan disimpan secara otomatis dan akan diterapkan saat aplikasi dibuka kembali.',
+                  languageProvider.translate('settings_info'),
                   style: TextStyle(
                     fontSize: 14,
                     color: themeProvider.isDarkMode 

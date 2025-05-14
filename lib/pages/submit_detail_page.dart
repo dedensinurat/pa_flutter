@@ -4,6 +4,14 @@ import '../models/submit_model.dart';
 import '../services/submit_services.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:path/path.dart' as path;
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:open_file/open_file.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
 
 class SubmitDetailPage extends StatefulWidget {
   final Submit submit;
@@ -20,6 +28,9 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
   String? _uploadMessage;
   bool _isEditing = false;
   late Submit _currentSubmit;
+  bool _isLoading = true;
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
 
   @override
   void initState() {
@@ -29,14 +40,21 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
   }
 
   Future<void> _refreshSubmitDetails() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final updatedSubmit = await SubmitService.fetchSubmitById(_currentSubmit.id);
       setState(() {
         _currentSubmit = updatedSubmit;
+        _isLoading = false;
       });
     } catch (e) {
-      // Handle error silently
       print("Error refreshing submit details: $e");
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -45,7 +63,7 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
     );
-    
+
     if (result != null) {
       setState(() {
         _selectedFile = File(result.files.single.path!);
@@ -61,7 +79,7 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
       return;
     }
 
-    // Validate file extension
+    // Validasi ekstensi file
     String extension = _selectedFile!.path.split('.').last.toLowerCase();
     if (!['pdf', 'doc', 'docx', 'zip'].contains(extension)) {
       setState(() {
@@ -76,24 +94,277 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
     });
 
     try {
-      final result = _isEditing 
+      // Menggunakan service untuk meng-upload file
+      final result = _isEditing
           ? await SubmitService.updateSubmit(_currentSubmit.id, _selectedFile!.path)
           : await SubmitService.uploadSubmit(_currentSubmit.id, _selectedFile!.path);
+
+      // Wait a moment to ensure the server has processed the update
+      await Future.delayed(const Duration(milliseconds: 500));
       
+      // Refresh submit after upload to get the latest status
+      await _refreshSubmitDetails();
+
       setState(() {
         _uploadMessage = result;
         _isUploading = false;
         _isEditing = false;
       });
-      
-      // Refresh the submit details to get the updated status
-      await _refreshSubmitDetails();
     } catch (e) {
       setState(() {
         _uploadMessage = 'Error: ${e.toString()}';
         _isUploading = false;
       });
     }
+  }
+
+  // Function to handle file opening
+  Future<void> _handleFileAction(String filePath) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Pilih Tindakan',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueGrey.shade800,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.download_rounded, color: Colors.blue),
+                title: const Text('Download File'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadAndOpenFile(filePath);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.open_in_browser, color: Colors.green),
+                title: const Text('Buka di Browser'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openInBrowser(filePath);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share, color: Colors.orange),
+                title: const Text('Bagikan Link'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _shareFileLink(filePath);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Open file in browser
+  Future<void> _openInBrowser(String filePath) async {
+    try {
+      final baseUrl = "http://192.168.206.227:8080/";
+      final fileUrl = Uri.parse('$baseUrl$filePath');
+      
+      if (await canLaunchUrl(fileUrl)) {
+        await launchUrl(fileUrl, mode: LaunchMode.externalApplication);
+      } else {
+        _showErrorDialog('Tidak dapat membuka browser. URL: $fileUrl');
+      }
+    } catch (e) {
+      _showErrorDialog('Error saat membuka browser: $e');
+    }
+  }
+
+  // Share file link
+  Future<void> _shareFileLink(String filePath) async {
+    try {
+      final baseUrl = "http://192.168.206.227:8080/";
+      final fileUrl = '$baseUrl$filePath';
+      
+      await Share.share(
+        'Lihat file tugas: $fileUrl',
+        subject: 'Link File Tugas',
+      );
+    } catch (e) {
+      _showErrorDialog('Error saat membagikan link: $e');
+    }
+  }
+
+  // Download and open file
+  Future<void> _downloadAndOpenFile(String filePath) async {
+    // Request storage permission
+    var status = await Permission.storage.request();
+    if (!status.isGranted) {
+      _showErrorDialog('Izin penyimpanan diperlukan untuk mengunduh file');
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0;
+    });
+
+    try {
+      // Show download progress dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Mengunduh File'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LinearProgressIndicator(value: _downloadProgress),
+                    const SizedBox(height: 10),
+                    Text('${(_downloadProgress * 100).toStringAsFixed(0)}%'),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _isDownloading = false;
+                      });
+                    },
+                    child: const Text('Batal'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      // Get file name from path
+      final fileName = path.basename(filePath);
+      
+      // Get download directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = await getExternalStorageDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+      
+      if (directory == null) {
+        throw Exception("Tidak dapat menemukan direktori penyimpanan");
+      }
+
+      // Create downloads folder if it doesn't exist
+      final downloadsDir = Directory('${directory.path}/Downloads');
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      final savePath = '${downloadsDir.path}/$fileName';
+      final file = File(savePath);
+
+      // Check if file already exists
+      if (await file.exists()) {
+        // Close download dialog
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        
+        // Open the existing file
+        _openDownloadedFile(savePath);
+        return;
+      }
+
+      // Download file
+      final dio = Dio();
+      final baseUrl = "http://192.168.206.227:8080/";
+      final fileUrl = '$baseUrl$filePath';
+
+      await dio.download(
+        fileUrl,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total != -1) {
+            setState(() {
+              _downloadProgress = received / total;
+            });
+          }
+        },
+      );
+
+      // Close download dialog
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      setState(() {
+        _isDownloading = false;
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('File berhasil diunduh ke: $savePath'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // Open the downloaded file
+      _openDownloadedFile(savePath);
+    } catch (e) {
+      // Close download dialog
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      setState(() {
+        _isDownloading = false;
+      });
+
+      _showErrorDialog('Error saat mengunduh file: $e');
+    }
+  }
+
+  // Open downloaded file
+  Future<void> _openDownloadedFile(String filePath) async {
+    try {
+      final result = await OpenFile.open(filePath);
+      if (result.type != ResultType.done) {
+        _showErrorDialog('Tidak dapat membuka file: ${result.message}');
+      }
+    } catch (e) {
+      _showErrorDialog('Error saat membuka file: $e');
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _getStatusText(String status) {
@@ -126,13 +397,48 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
     }
   }
 
+  // Get file icon based on extension
+  IconData _getFileIcon(String filePath) {
+    if (filePath.isEmpty) return Icons.insert_drive_file;
+    
+    final extension = filePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'zip':
+        return Icons.folder_zip;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  // Get file name from path
+  String _getFileName(String filePath) {
+    if (filePath.isEmpty) return "Tidak ada file";
+    
+    // Extract just the filename from the path
+    return filePath.split('/').last;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool hasSubmitted = _currentSubmit.submissionStatus != 'Belum';
+    if (_isLoading) {
+      return _buildSkeletonLoading();
+    }
+
+    final bool hasSubmitted = _currentSubmit.hasValidSubmission;
     final bool isDeadlinePassed = DateTime.now().isAfter(DateTime.parse(_currentSubmit.tanggalPengumpulan));
-    
+
     return Scaffold(
       backgroundColor: Colors.blueGrey.shade50,
+      appBar: AppBar(
+        title: const Text('Detail Tugas'),
+        backgroundColor: Colors.lightBlue.shade300,
+        elevation: 0,
+      ),
       body: Stack(
         children: [
           // Gelombang latar atas
@@ -160,6 +466,7 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Section Detail Tugas (Judul, Instruksi, Tanggal Pengumpulan)
                   _buildDetailSection(
                     icon: Icons.title_outlined,
                     label: "Judul",
@@ -180,17 +487,120 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                     value: DateFormat('dd MMMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.tanggalPengumpulan)),
                     color: Colors.deepOrange.shade300,
                   ),
-                  
                   const SizedBox(height: 16),
-                  _buildDetailSection(
-                    icon: Icons.attach_file_outlined,
-                    label: "File Lampiran",
-                    value: _currentSubmit.file.isEmpty ? "Tidak ada file lampiran" : _currentSubmit.file,
-                    color: Colors.purple.shade300,
+                  
+                  // File Lampiran section with clickable functionality
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.grey.shade200, 
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade300.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(Icons.attach_file_outlined, color: Colors.purple.shade300, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              "File Lampiran",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.blueGrey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (_currentSubmit.file.isEmpty)
+                          Text(
+                            "Tidak ada file lampiran",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.black87,
+                            ),
+                          )
+                        else
+                          InkWell(
+                            onTap: () => _handleFileAction(_currentSubmit.file),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.purple.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      _getFileIcon(_currentSubmit.file), 
+                                      size: 24, 
+                                      color: Colors.purple.shade700
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _getFileName(_currentSubmit.file),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.purple.shade700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "Tap untuk membuka file",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.purple.shade400,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.more_vert, size: 18, color: Colors.purple.shade400),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
                   // Submission Status Section
                   if (hasSubmitted)
                     Container(
@@ -238,82 +648,111 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          // Fixed: Wrap this row in a Column to prevent overflow
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(_currentSubmit.submissionStatus).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: _getStatusColor(_currentSubmit.submissionStatus),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  _getStatusText(_currentSubmit.submissionStatus),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: _getStatusColor(_currentSubmit.submissionStatus),
-                                  ),
-                                ),
-                              ),
-                              if (_currentSubmit.submissionDate != null) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 14,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        "Dikumpulkan pada ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.submissionDate!))}",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
                           const SizedBox(height: 12),
-                          if (_currentSubmit.submissionFile.isNotEmpty)
+                          // Status badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(_currentSubmit.submissionStatus).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _getStatusColor(_currentSubmit.submissionStatus),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              _getStatusText(_currentSubmit.submissionStatus),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _getStatusColor(_currentSubmit.submissionStatus),
+                              ),
+                            ),
+                          ),
+                          if (_currentSubmit.submissionDate != null) ...[
+                            const SizedBox(height: 10),
                             Row(
                               children: [
                                 Icon(
-                                  Icons.insert_drive_file,
-                                  size: 16,
-                                  color: Colors.blue.shade700,
+                                  Icons.access_time,
+                                  size: 14,
+                                  color: Colors.grey.shade600,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
-                                    _currentSubmit.submissionFile.split('/').last,
+                                    "Dikumpulkan pada ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(_currentSubmit.submissionDate!))}",
                                     style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.blue.shade700,
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
                                     ),
-                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
                             ),
+                          ],
+                          if (_currentSubmit.submissionFile.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            InkWell(
+                              onTap: () => _handleFileAction(_currentSubmit.submissionFile),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade100,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        _getFileIcon(_currentSubmit.submissionFile), 
+                                        size: 24, 
+                                        color: Colors.blue.shade700
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _getFileName(_currentSubmit.submissionFile),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.blue.shade700,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            "Tap untuk membuka file yang dikumpulkan",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.blue.shade400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(Icons.more_vert, size: 18, color: Colors.blue.shade400),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                  
+
                   // File selection section
                   if (_selectedFile != null)
                     Container(
@@ -343,9 +782,9 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                         ],
                       ),
                     ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Upload message
                   if (_uploadMessage != null)
                     Container(
@@ -370,9 +809,9 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                         ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Buttons
                   if (!hasSubmitted) ...[
                     // Show submit button only if not yet submitted
@@ -436,7 +875,6 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                   ] else ...[
                     // Show edit button if already submitted
                     if (_isEditing) ...[
-                      // Fixed: Use Column instead of Row for edit buttons to prevent overflow
                       Column(
                         children: [
                           ElevatedButton.icon(
@@ -530,30 +968,375 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Tombol back dan judul
-          Positioned(
-            top: 24,
-            left: 16,
-            right: 16,
-            child: SafeArea(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildSkeletonLoading() {
+    return Scaffold(
+      backgroundColor: Colors.blueGrey.shade50,
+      appBar: AppBar(
+        title: const Text('Detail Tugas'),
+        backgroundColor: Colors.lightBlue.shade300,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          // Gelombang latar atas
+          ClipPath(
+            clipper: WavyClipper(),
+            child: Container(
+              height: 140,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF81D4FA).withOpacity(0.9),
+                    const Color(0xFFB3E5FC).withOpacity(0.6),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+
+          // Konten utama
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 100, 18, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                  // Section Detail Tugas (Judul, Instruksi, Tanggal Pengumpulan)
+                  _buildDetailSectionSkeleton(
+                    label: "Judul",
+                    color: Colors.indigo.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailSectionSkeleton(
+                    label: "Instruksi",
+                    color: Colors.teal.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailSectionSkeleton(
+                    label: "Batas Pengumpulan",
+                    color: Colors.deepOrange.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // File Lampiran section skeleton
+                  _buildFileSectionSkeleton(
+                    label: "File Lampiran",
+                    color: Colors.purple.shade300,
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Submission Status Section skeleton
+                  _buildSubmissionStatusSkeleton(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Buttons skeleton
+                  _buildButtonsSkeleton(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailSectionSkeleton({
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.shade200, 
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.circle, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blueGrey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity * 0.7,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileSectionSkeleton({
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.shade200, 
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.attach_file_outlined, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blueGrey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    width: 40,
+                    height: 40,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Detail Pengumpulan',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: 120,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmissionStatusSkeleton() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.grey.shade200, 
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  width: 36,
+                  height: 36,
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  width: 120,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+              ),
+              width: 100,
+              height: 24,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  width: 200,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButtonsSkeleton() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),

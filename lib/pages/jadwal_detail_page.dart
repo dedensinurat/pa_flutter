@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../services/jadwal_service.dart';
 import '../models/jadwal_model.dart';
 import '../utils/enhanced_wavy_header.dart';
+import 'package:shimmer/shimmer.dart';
 
 class JadwalDetailPage extends StatefulWidget {
   final int jadwalId;
@@ -47,10 +48,308 @@ class _JadwalDetailPageState extends State<JadwalDetailPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4299E1)))
+          ? _buildSkeletonLoading()
           : _errorMessage.isNotEmpty
               ? _buildErrorView()
               : _buildDetailView(),
+    );
+  }
+
+  Widget _buildSkeletonLoading() {
+    return Stack(
+      children: [
+        // Enhanced Wavy Background
+        ClipPath(
+          clipper: EnhancedWavyClipper(),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.25,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF4299E1),
+                  const Color(0xFF63B3ED),
+                  const Color(0xFF90CDF4).withOpacity(0.8),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // App Bar
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: AppBar(
+            title: const Text(
+              'Detail Jadwal',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                color: Colors.white,
+              ),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+        ),
+
+        // Main Content
+        SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 70.0, bottom: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Page Title Skeleton
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Shimmer.fromColors(
+                          baseColor: Colors.white.withOpacity(0.5),
+                          highlightColor: Colors.white.withOpacity(0.8),
+                          child: Container(
+                            width: 200,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Shimmer.fromColors(
+                          baseColor: Colors.white.withOpacity(0.5),
+                          highlightColor: Colors.white.withOpacity(0.8),
+                          child: Container(
+                            width: 150,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Content Area
+                  Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF5F7FA),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Schedule Information Card Skeleton
+                          _buildCardSkeleton(
+                            title: 'Informasi Jadwal',
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildInfoItemSkeleton(
+                                      title: 'Tanggal',
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildInfoItemSkeleton(
+                                      title: 'Waktu',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _buildInfoItemSkeleton(
+                                title: 'Ruangan',
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Examiners Card Skeleton
+                          _buildCardSkeleton(
+                            title: 'Penguji',
+                            children: [
+                              _buildExaminerItemSkeleton(
+                                role: 'Penguji Utama',
+                              ),
+                              const SizedBox(height: 16),
+                              _buildExaminerItemSkeleton(
+                                role: 'Penguji Pendamping',
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Group Information Card Skeleton
+                          _buildCardSkeleton(
+                            title: 'Informasi Kelompok',
+                            children: [
+                              _buildInfoItemSkeleton(
+                                title: 'Kelompok',
+                              ),
+                              const SizedBox(height: 12),
+                              _buildInfoItemSkeleton(
+                                title: 'ID Kelompok',
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardSkeleton({required String title, required List<Widget> children}) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Serif',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D3748),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Divider(height: 24),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoItemSkeleton({required String title}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            width: 36,
+            height: 36,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Container(
+                  width: double.infinity,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExaminerItemSkeleton({required String role}) {
+    return Row(
+      children: [
+        Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Container(
+                  width: 150,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                role,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

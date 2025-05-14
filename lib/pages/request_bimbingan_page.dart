@@ -136,20 +136,22 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(
-                    color: const Color(0xFFE6FFFA),
+                    color: Color(0xFFE6FFFA),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check_circle_outline, color: Color(0xFF38B2AC), size: 24),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Berhasil!', 
-                  style: TextStyle(
-                    fontSize: 20, 
-                    fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode 
-                        ? Colors.white 
-                        : const Color(0xFF2D3748),
+                Flexible(
+                  child: Text(
+                    'Berhasil!', 
+                    style: TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.bold,
+                      color: themeProvider.isDarkMode 
+                          ? Colors.white 
+                          : const Color(0xFF2D3748),
+                    ),
                   ),
                 ),
               ],
@@ -215,6 +217,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
 
   Future<void> _pickDateTime() async {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
     
     final dateMulai = await showDatePicker(
       context: context,
@@ -227,10 +230,13 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             colorScheme: ColorScheme.light(
               primary: const Color(0xFF4299E1),
               onPrimary: Colors.white,
-              onSurface: themeProvider.isDarkMode 
+              onSurface: isDarkMode 
                   ? Colors.white 
                   : const Color(0xFF2D3748),
             ),
+            dialogBackgroundColor: isDarkMode 
+                ? const Color(0xFF2D3748) 
+                : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF4299E1),
@@ -252,10 +258,13 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             colorScheme: ColorScheme.light(
               primary: const Color(0xFF4299E1),
               onPrimary: Colors.white,
-              onSurface: themeProvider.isDarkMode 
+              onSurface: isDarkMode 
                   ? Colors.white 
                   : const Color(0xFF2D3748),
             ),
+            dialogBackgroundColor: isDarkMode 
+                ? const Color(0xFF2D3748) 
+                : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF4299E1),
@@ -279,10 +288,13 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             colorScheme: ColorScheme.light(
               primary: const Color(0xFF4299E1),
               onPrimary: Colors.white,
-              onSurface: themeProvider.isDarkMode 
+              onSurface: isDarkMode 
                   ? Colors.white 
                   : const Color(0xFF2D3748),
             ),
+            dialogBackgroundColor: isDarkMode 
+                ? const Color(0xFF2D3748) 
+                : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF4299E1),
@@ -304,10 +316,13 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             colorScheme: ColorScheme.light(
               primary: const Color(0xFF4299E1),
               onPrimary: Colors.white,
-              onSurface: themeProvider.isDarkMode 
+              onSurface: isDarkMode 
                   ? Colors.white 
                   : const Color(0xFF2D3748),
             ),
+            dialogBackgroundColor: isDarkMode 
+                ? const Color(0xFF2D3748) 
+                : Colors.white,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF4299E1),
@@ -330,6 +345,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     
     final dateTimeFormat = (_rencanaMulai != null && _rencanaSelesai != null)
         ? '${DateFormat('dd-MM-yyyy HH:mm').format(_rencanaMulai!)} - ${DateFormat('HH:mm').format(_rencanaSelesai!)}'
@@ -338,7 +354,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
     return Theme(
       data: themeProvider.themeData,
       child: Scaffold(
-        backgroundColor: themeProvider.isDarkMode 
+        backgroundColor: isDarkMode 
             ? const Color(0xFF1A202C) 
             : const Color(0xFFF5F7FA),
         appBar: AppBar(
@@ -346,221 +362,213 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             'Ajukan Bimbingan',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: themeProvider.isDarkMode 
+              color: isDarkMode 
                   ? Colors.white 
                   : const Color(0xFF2D3748),
             ),
           ),
           centerTitle: true,
-          backgroundColor: themeProvider.isDarkMode 
+          backgroundColor: isDarkMode 
               ? const Color(0xFF2D3748) 
               : Colors.white,
           elevation: 0,
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back, 
-              color: themeProvider.isDarkMode 
+              color: isDarkMode 
                   ? Colors.white 
                   : const Color(0xFF2D3748),
             ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: Stack(
-          children: [
-            // Background decoration
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF4299E1).withOpacity(0.05),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Text(
+                  'Formulir Bimbingan',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode 
+                        ? Colors.white 
+                        : const Color(0xFF2D3748),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: -50,
-              left: -50,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF4299E1).withOpacity(0.05),
+                const SizedBox(height: 8),
+                Text(
+                  'Silakan lengkapi formulir di bawah ini untuk mengajukan bimbingan dengan dosen.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDarkMode 
+                        ? Colors.white.withOpacity(0.7) 
+                        : const Color(0xFF718096),
+                  ),
                 ),
-              ),
-            ),
-            
-            // Main content
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header
-                      Text(
-                        'Formulir Bimbingan',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: themeProvider.isDarkMode 
-                              ? Colors.white 
-                              : const Color(0xFF2D3748),
-                        ),
+                const SizedBox(height: 24),
+                
+                // Form Card
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: isDarkMode 
+                        ? const Color(0xFF2D3748) 
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                        offset: const Offset(0, 5),
                       ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Keperluan Field
+                      _buildFormLabel('Keperluan Bimbingan', true, isDarkMode),
                       const SizedBox(height: 8),
-                      Text(
-                        'Silakan lengkapi formulir di bawah ini untuk mengajukan bimbingan dengan dosen.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: themeProvider.isDarkMode 
-                              ? Colors.white.withOpacity(0.7) 
-                              : const Color(0xFF718096),
-                        ),
+                      _buildTextField(
+                        controller: _keperluanController,
+                        hintText: 'Tulis keperluan bimbingan Anda',
+                        icon: Icons.subject,
+                        validator: (value) => value!.isEmpty ? 'Keperluan wajib diisi' : null,
+                        isDarkMode: isDarkMode,
                       ),
                       const SizedBox(height: 24),
                       
-                      // Form Card
+                      // Date Time Field
+                      _buildFormLabel('Rencana Tanggal & Waktu', true, isDarkMode),
+                      const SizedBox(height: 8),
+                      _buildDateTimePicker(dateTimeFormat, isDarkMode),
+                      const SizedBox(height: 24),
+                      
+                      // Ruangan Field
+                      _buildFormLabel('Ruangan Bimbingan', true, isDarkMode),
+                      const SizedBox(height: 8),
+                      _buildRuanganDropdown(isDarkMode),
+                      const SizedBox(height: 24),
+                      
+                      // Deskripsi Field (Optional)
+                      _buildFormLabel('Deskripsi Tambahan', false, isDarkMode),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _deskripsiController,
+                        hintText: 'Jelaskan lebih detail keperluan Anda (opsional)',
+                        icon: Icons.description,
+                        maxLines: 3,
+                        isDarkMode: isDarkMode,
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Buttons
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Use a column instead of row for narrow screens
+                          if (constraints.maxWidth < 400) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildOutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  text: 'Batal',
+                                ),
+                                const SizedBox(height: 12),
+                                _buildElevatedButton(
+                                  onPressed: _isSubmitting ? null : _submit,
+                                  text: _isSubmitting ? 'Mengirim...' : 'Ajukan',
+                                ),
+                              ],
+                            );
+                          }
+                          
+                          // Use row for wider screens
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildOutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  text: 'Batal',
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildElevatedButton(
+                                  onPressed: _isSubmitting ? null : _submit,
+                                  text: _isSubmitting ? 'Mengirim...' : 'Ajukan',
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Info Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode 
+                        ? const Color(0xFF2C5282).withOpacity(0.2) 
+                        : const Color(0xFFEBF8FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDarkMode 
+                          ? const Color(0xFF4299E1).withOpacity(0.5) 
+                          : const Color(0xFF90CDF4),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Container(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode 
+                          color: isDarkMode 
                               ? const Color(0xFF2D3748) 
                               : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF4299E1),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Keperluan Field
-                            _buildFormLabel('Keperluan Bimbingan', true),
-                            const SizedBox(height: 8),
-                            _buildTextField(
-                              controller: _keperluanController,
-                              hintText: 'Tulis keperluan bimbingan Anda',
-                              icon: Icons.subject,
-                              validator: (value) => value!.isEmpty ? 'Keperluan wajib diisi' : null,
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Date Time Field
-                            _buildFormLabel('Rencana Tanggal & Waktu', true),
-                            const SizedBox(height: 8),
-                            _buildDateTimePicker(dateTimeFormat),
-                            const SizedBox(height: 24),
-                            
-                            // Ruangan Field
-                            _buildFormLabel('Ruangan Bimbingan', true),
-                            const SizedBox(height: 8),
-                            _buildRuanganDropdown(),
-                            const SizedBox(height: 24),
-                            
-                            // Deskripsi Field (Optional)
-                            _buildFormLabel('Deskripsi Tambahan', false),
-                            const SizedBox(height: 8),
-                            _buildTextField(
-                              controller: _deskripsiController,
-                              hintText: 'Jelaskan lebih detail keperluan Anda (opsional)',
-                              icon: Icons.description,
-                              maxLines: 3,
-                            ),
-                            const SizedBox(height: 32),
-                            
-                            // Buttons
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildOutlinedButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    text: 'Batal',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildElevatedButton(
-                                    onPressed: _isSubmitting ? null : _submit,
-                                    text: _isSubmitting ? 'Mengirim...' : 'Ajukan',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Info Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode 
-                              ? const Color(0xFF2C5282).withOpacity(0.2) 
-                              : const Color(0xFFEBF8FF),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: themeProvider.isDarkMode 
-                                ? const Color(0xFF4299E1).withOpacity(0.5) 
-                                : const Color(0xFF90CDF4),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode 
-                                    ? const Color(0xFF2D3748) 
-                                    : Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.info_outline,
-                                color: Color(0xFF4299E1),
-                                size: 24,
+                            Text(
+                              'Informasi',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDarkMode 
+                                    ? const Color(0xFF90CDF4) 
+                                    : const Color(0xFF2C5282),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Informasi',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: themeProvider.isDarkMode 
-                                          ? const Color(0xFF90CDF4) 
-                                          : const Color(0xFF2C5282),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Permintaan bimbingan akan dikirim ke dosen dan menunggu persetujuan.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: themeProvider.isDarkMode 
-                                          ? Colors.white.withOpacity(0.8) 
-                                          : const Color(0xFF2A4365),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 4),
+                            Text(
+                              'Permintaan bimbingan akan dikirim ke dosen dan menunggu persetujuan.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDarkMode 
+                                    ? Colors.white.withOpacity(0.8) 
+                                    : const Color(0xFF2A4365),
                               ),
                             ),
                           ],
@@ -569,17 +577,15 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFormLabel(String label, bool isRequired) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
+  Widget _buildFormLabel(String label, bool isRequired, bool isDarkMode) {
     return Row(
       children: [
         Text(
@@ -587,7 +593,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: themeProvider.isDarkMode 
+            color: isDarkMode 
                 ? Colors.white.withOpacity(0.7) 
                 : const Color(0xFF4A5568),
           ),
@@ -609,25 +615,24 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
     required TextEditingController controller,
     required String hintText,
     required IconData icon,
+    required bool isDarkMode,
     String? Function(String?)? validator,
     int maxLines = 1,
   }) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
-          color: themeProvider.isDarkMode 
+          color: isDarkMode 
               ? Colors.white.withOpacity(0.3) 
               : const Color(0xFFA0AEC0),
           fontSize: 14,
         ),
         prefixIcon: Icon(icon, color: const Color(0xFF4299E1), size: 20),
         filled: true,
-        fillColor: themeProvider.isDarkMode 
+        fillColor: isDarkMode 
             ? const Color(0xFF1A202C) 
             : const Color(0xFFF7FAFC),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -638,7 +643,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: themeProvider.isDarkMode 
+            color: isDarkMode 
                 ? const Color(0xFF4A5568) 
                 : const Color(0xFFE2E8F0),
           ),
@@ -654,7 +659,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
       ),
       style: TextStyle(
         fontSize: 14,
-        color: themeProvider.isDarkMode 
+        color: isDarkMode 
             ? Colors.white 
             : const Color(0xFF2D3748),
       ),
@@ -662,9 +667,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
     );
   }
 
-  Widget _buildDateTimePicker(String dateTimeFormat) {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
+  Widget _buildDateTimePicker(String dateTimeFormat, bool isDarkMode) {
     return GestureDetector(
       onTap: _pickDateTime,
       child: AbsorbPointer(
@@ -672,7 +675,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
           decoration: InputDecoration(
             hintText: 'Pilih tanggal dan waktu',
             hintStyle: TextStyle(
-              color: themeProvider.isDarkMode 
+              color: isDarkMode 
                   ? Colors.white.withOpacity(0.3) 
                   : const Color(0xFFA0AEC0),
               fontSize: 14,
@@ -680,7 +683,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF4299E1), size: 20),
             suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4299E1)),
             filled: true,
-            fillColor: themeProvider.isDarkMode 
+            fillColor: isDarkMode 
                 ? const Color(0xFF1A202C) 
                 : const Color(0xFFF7FAFC),
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -691,7 +694,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: themeProvider.isDarkMode 
+                color: isDarkMode 
                     ? const Color(0xFF4A5568) 
                     : const Color(0xFFE2E8F0),
               ),
@@ -708,7 +711,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
           controller: TextEditingController(text: dateTimeFormat),
           style: TextStyle(
             fontSize: 14,
-            color: themeProvider.isDarkMode 
+            color: isDarkMode 
                 ? Colors.white 
                 : const Color(0xFF2D3748),
           ),
@@ -720,9 +723,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
     );
   }
 
-  Widget _buildRuanganDropdown() {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    
+  Widget _buildRuanganDropdown(bool isDarkMode) {
     if (_isLoadingRuangan) {
       return Center(
         child: Padding(
@@ -739,11 +740,14 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF5F5),
+          color: isDarkMode 
+              ? const Color(0xFF2C1A1A) 
+              : const Color(0xFFFFF5F5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFE53E3E)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Icon(Icons.error_outline, color: Color(0xFFE53E3E)),
             const SizedBox(width: 8),
@@ -763,14 +767,14 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
       decoration: InputDecoration(
         hintText: 'Pilih ruangan',
         hintStyle: TextStyle(
-          color: themeProvider.isDarkMode 
+          color: isDarkMode 
               ? Colors.white.withOpacity(0.3) 
               : const Color(0xFFA0AEC0),
           fontSize: 14,
         ),
         prefixIcon: const Icon(Icons.meeting_room, color: Color(0xFF4299E1), size: 20),
         filled: true,
-        fillColor: themeProvider.isDarkMode 
+        fillColor: isDarkMode 
             ? const Color(0xFF1A202C) 
             : const Color(0xFFF7FAFC),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -781,7 +785,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: themeProvider.isDarkMode 
+            color: isDarkMode 
                 ? const Color(0xFF4A5568) 
                 : const Color(0xFFE2E8F0),
           ),
@@ -797,17 +801,20 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
       ),
       style: TextStyle(
         fontSize: 14,
-        color: themeProvider.isDarkMode 
+        color: isDarkMode 
             ? Colors.white 
             : const Color(0xFF2D3748),
       ),
-      dropdownColor: themeProvider.isDarkMode 
+      dropdownColor: isDarkMode 
           ? const Color(0xFF2D3748) 
           : Colors.white,
       items: _ruanganList.map((ruangan) {
         return DropdownMenuItem<int>(
           value: ruangan.id,
-          child: Text(ruangan.ruangan),
+          child: Text(
+            ruangan.ruangan,
+            overflow: TextOverflow.ellipsis,
+          ),
         );
       }).toList(),
       onChanged: (value) {
@@ -816,6 +823,7 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
         });
       },
       validator: (value) => value == null ? 'Ruangan wajib dipilih' : null,
+      isExpanded: true,
     );
   }
 
@@ -867,4 +875,9 @@ class _RequestBimbinganPageState extends State<RequestBimbinganPage> with Single
       ),
     );
   }
+}
+
+class NoGroupException implements Exception {
+  final String message;
+  NoGroupException(this.message);
 }

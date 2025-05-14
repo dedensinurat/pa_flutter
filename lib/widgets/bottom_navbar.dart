@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_artefak/providers/theme_provider.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -12,15 +14,23 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            const Color(0xFFF5F7FA),
-          ],
+          colors: isDarkMode
+              ? [
+                  const Color(0xFF1A202C),
+                  const Color(0xFF2D3748),
+                ]
+              : [
+                  Colors.white,
+                  const Color(0xFFF5F7FA),
+                ],
         ),
         boxShadow: [
           BoxShadow(
@@ -38,10 +48,10 @@ class BottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.folder_rounded, 'Bimbingan'),
-              _buildNavItem(2, Icons.notifications_rounded, 'Notifikasi'),
-              _buildNavItem(3, Icons.person_rounded, 'Profil'),
+              _buildNavItem(0, Icons.home_rounded, 'Home', isDarkMode),
+              _buildNavItem(1, Icons.folder_rounded, 'Bimbingan', isDarkMode),
+              _buildNavItem(2, Icons.notifications_rounded, 'Notifikasi', isDarkMode),
+              _buildNavItem(3, Icons.person_rounded, 'Profil', isDarkMode),
             ],
           ),
         ),
@@ -49,7 +59,7 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, bool isDarkMode) {
     final isSelected = currentIndex == index;
     return InkWell(
       onTap: () => onTap(index),
@@ -92,7 +102,11 @@ class BottomNavBar extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: isSelected ? Colors.white : Colors.grey.shade400,
+                color: isSelected 
+                    ? Colors.white 
+                    : isDarkMode 
+                        ? Colors.grey.shade400 
+                        : Colors.grey.shade400,
                 size: 22,
               ),
             ),
@@ -100,48 +114,17 @@ class BottomNavBar extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? const Color(0xFF4299E1) : Colors.grey.shade500,
+                color: isSelected 
+                    ? const Color(0xFF4299E1) 
+                    : isDarkMode 
+                        ? Colors.grey.shade400 
+                        : Colors.grey.shade500,
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-void main() {
-  runApp(
-    MaterialApp(
-      home: GradientNavExample(),
-    ),
-  );
-}
-
-class GradientNavExample extends StatefulWidget {
-  @override
-  _GradientNavExampleState createState() => _GradientNavExampleState();
-}
-
-class _GradientNavExampleState extends State<GradientNavExample> {
-  int _currentIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: Center(
-        child: Text('Page $_currentIndex'),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
       ),
     );
   }
