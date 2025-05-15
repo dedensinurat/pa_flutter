@@ -3,7 +3,7 @@ class ApiConstants {
   static const String baseUrl = "http://192.168.206.227:8080";
   static const String externalApiUrl = "https://cis-dev.del.ac.id/api";
   // Laravel storage URL
-  static const String laravelStorageUrl = "http://127.0.0.1:8000/storage";
+  static const String laravelStorageUrl = "https://vokasitera-main-ltziwn.laravel.cloud/storage";
 
   // API Endpoints
   static const String loginEndpoint = "/login";
