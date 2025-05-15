@@ -5,6 +5,12 @@ import 'package:flutter_artefak/models/student_model.dart';
 import '../utils/api_constants.dart';
 
 class ApiService {
+<<<<<<< Updated upstream
+=======
+  static const String baseUrl = 'http://192.168.189.83:8080';
+  static const String externalApiUrl = "https://cis-dev.del.ac.id/api";
+
+>>>>>>> Stashed changes
   static Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse("${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}");
 

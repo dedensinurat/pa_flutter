@@ -628,7 +628,7 @@ class _BimbinganPageState extends State<BimbinganPage> with SingleTickerProvider
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _formatDateForList(item.rencanaMulai) + ' • ' + _formatTimeForList(item.rencanaMulai),
+                    '${_formatDateForList(item.rencanaMulai)} • ${_formatTimeForList(item.rencanaMulai)}',
                     style: TextStyle(
                       fontSize: 12,
                       color: themeProvider.isDarkMode 

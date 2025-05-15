@@ -5,7 +5,7 @@ import 'package:flutter_artefak/providers/language_provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();

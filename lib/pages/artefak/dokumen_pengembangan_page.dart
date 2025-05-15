@@ -3,14 +3,14 @@ import 'package:flutter_artefak/widgets/bottom_navbar.dart';
 import 'package:flutter_artefak/main.dart';
 
 class DokumenPengembanganPage extends StatefulWidget {
-  const DokumenPengembanganPage({Key? key}) : super(key: key);
+  const DokumenPengembanganPage({super.key});
 
   @override
   _DokumenPengembanganPageState createState() => _DokumenPengembanganPageState();
 }
 
 class _DokumenPengembanganPageState extends State<DokumenPengembanganPage> {
-  int _selectedIndex = 0;
+  final int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
     Navigator.pushReplacement(

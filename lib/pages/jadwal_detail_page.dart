@@ -9,9 +9,9 @@ class JadwalDetailPage extends StatefulWidget {
   final int jadwalId;
   
   const JadwalDetailPage({
-    Key? key,
+    super.key,
     required this.jadwalId,
-  }) : super(key: key);
+  });
 
   @override
   State<JadwalDetailPage> createState() => _JadwalDetailPageState();

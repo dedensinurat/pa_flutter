@@ -14,7 +14,7 @@ import '../utils/enhanced_wavy_header.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -80,8 +80,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       setState(() {
         _isRefreshing = false;
       });
+<<<<<<< Updated upstream
       print('Error fetching submissions in HomePage: $e');
       throw e;
+=======
+      rethrow;
+>>>>>>> Stashed changes
     }
   }
 

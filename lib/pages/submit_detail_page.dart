@@ -140,7 +140,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
 class SubmitDetailPage extends StatefulWidget {
   final Submit submit;
 
-  const SubmitDetailPage({Key? key, required this.submit}) : super(key: key);
+  const SubmitDetailPage({super.key, required this.submit});
 
   @override
   State<SubmitDetailPage> createState() => _SubmitDetailPageState();
