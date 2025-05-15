@@ -12,7 +12,131 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
+
+// PDF Viewer Page Component
+class PDFViewerPage extends StatefulWidget {
+  final String filePath;
+  final String fileName;
+
+  const PDFViewerPage({Key? key, required this.filePath, required this.fileName}) : super(key: key);
+
+  @override
+  State<PDFViewerPage> createState() => _PDFViewerPageState();
+}
+
+class _PDFViewerPageState extends State<PDFViewerPage> {
+  final GlobalKey<SfPdfViewerState> _pdfViewerKey = GlobalKey();
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.fileName),
+        backgroundColor: Colors.lightBlue.shade300,
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.bookmark),
+        //     onPressed: () {
+        //     },
+        //   ),
+        //   IconButton(
+        //     icon: const Icon(Icons.search),
+        //     onPressed: () {
+              
+        //     },
+        //   ),
+        // ],
+      ),
+      body: Stack(
+        children: [
+          SfPdfViewer.network(
+            widget.filePath,
+            key: _pdfViewerKey,
+            canShowPaginationDialog: true,
+            canShowScrollHead: true,
+            canShowScrollStatus: true,
+            enableDoubleTapZooming: true,
+            onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+              setState(() {
+                _isLoading = false;
+              });
+            },
+            onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+              setState(() {
+                _isLoading = false;
+                _errorMessage = 'Error loading PDF: ${details.error}';
+              });
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error loading PDF: ${details.error}'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                  action: SnackBarAction(
+                    label: 'Close',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+          if (_errorMessage != null)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Submit Detail Page Component
 class SubmitDetailPage extends StatefulWidget {
   final Submit submit;
 
@@ -37,6 +161,35 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
     super.initState();
     _currentSubmit = widget.submit;
     _refreshSubmitDetails();
+    _requestPermissions();
+  }
+
+  // Request all necessary permissions at startup
+  Future<void> _requestPermissions() async {
+    // Basic storage permission that works on all Android versions
+    await Permission.storage.request();
+    
+    if (Platform.isAndroid) {
+      try {
+        // Try to request manage external storage permission (for Android 11+)
+        await Permission.manageExternalStorage.request();
+      } catch (e) {
+        print("Error requesting manageExternalStorage: $e");
+      }
+      
+      try {
+        // Try to request media permissions (for Android 13+)
+        await Permission.photos.request();
+      } catch (e) {
+        print("Error requesting photos permission: $e");
+      }
+      
+      try {
+        await Permission.videos.request();
+      } catch (e) {
+        print("Error requesting videos permission: $e");
+      }
+    }
   }
 
   Future<void> _refreshSubmitDetails() async {
@@ -120,6 +273,15 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
 
   // Function to handle file opening
   Future<void> _handleFileAction(String filePath) async {
+    final extension = filePath.toLowerCase().split('.').last;
+
+    // For PDF files, directly open the PDF viewer
+    if (extension == 'pdf') {
+      _openPdfViewer(filePath);
+      return;
+    }
+
+    // For other file types, show the action sheet
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -140,6 +302,16 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
                 ),
               ),
               const SizedBox(height: 20),
+              // Only show PDF viewer option for PDF files
+              if (extension == 'pdf')
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                  title: const Text('Buka PDF Viewer'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openPdfViewer(filePath);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.download_rounded, color: Colors.blue),
                 title: const Text('Download File'),
@@ -171,11 +343,35 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
     );
   }
 
+  // New method to open PDF in the built-in viewer
+  Future<void> _openPdfViewer(String filePath) async {
+    try {
+      final fileUrl = SubmitService.getFileUrl(filePath);
+      final fileName = _getFileName(filePath);
+      
+      print('Opening PDF viewer with URL: $fileUrl');
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PDFViewerPage(
+            filePath: fileUrl,
+            fileName: fileName,
+          ),
+        ),
+      );
+    } catch (e) {
+      _showErrorDialog('Error opening PDF viewer: $e');
+    }
+  }
+
   // Open file in browser
   Future<void> _openInBrowser(String filePath) async {
     try {
-      final baseUrl = "http://192.168.206.227:8080/";
-      final fileUrl = Uri.parse('$baseUrl$filePath');
+      // Use the service to get the correct URL based on file path
+      final fileUrl = Uri.parse(SubmitService.getFileUrl(filePath));
+      
+      print('Opening URL in browser: $fileUrl');
       
       if (await canLaunchUrl(fileUrl)) {
         await launchUrl(fileUrl, mode: LaunchMode.externalApplication);
@@ -187,11 +383,13 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
     }
   }
 
-  // Share file link
+  // Update the _shareFileLink method
   Future<void> _shareFileLink(String filePath) async {
     try {
-      final baseUrl = "http://192.168.206.227:8080/";
-      final fileUrl = '$baseUrl$filePath';
+      // Use the service to get the correct URL based on file path
+      final fileUrl = SubmitService.getFileUrl(filePath);
+      
+      print('Sharing file URL: $fileUrl');
       
       await Share.share(
         'Lihat file tugas: $fileUrl',
@@ -202,11 +400,47 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
     }
   }
 
-  // Download and open file
+  // Update the _downloadAndOpenFile method
   Future<void> _downloadAndOpenFile(String filePath) async {
-    // Request storage permission
-    var status = await Permission.storage.request();
-    if (!status.isGranted) {
+    // Check and request storage permissions
+    bool hasPermission = false;
+    
+    if (Platform.isAndroid) {
+      // First try with storage permission which works on most Android versions
+      var storageStatus = await Permission.storage.status;
+      if (storageStatus.isGranted) {
+        hasPermission = true;
+      } else {
+        storageStatus = await Permission.storage.request();
+        hasPermission = storageStatus.isGranted;
+      }
+      
+      // If basic storage permission failed, try with manage external storage
+      if (!hasPermission) {
+        try {
+          var externalStatus = await Permission.manageExternalStorage.status;
+          if (externalStatus.isGranted) {
+            hasPermission = true;
+          } else {
+            externalStatus = await Permission.manageExternalStorage.request();
+            hasPermission = externalStatus.isGranted;
+          }
+        } catch (e) {
+          print("Error with manageExternalStorage permission: $e");
+        }
+      }
+    } else {
+      // For iOS
+      var status = await Permission.storage.status;
+      if (status.isGranted) {
+        hasPermission = true;
+      } else {
+        status = await Permission.storage.request();
+        hasPermission = status.isGranted;
+      }
+    }
+    
+    if (!hasPermission) {
       _showErrorDialog('Izin penyimpanan diperlukan untuk mengunduh file');
       return;
     }
@@ -258,7 +492,17 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
       // Get download directory
       Directory? directory;
       if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
+        try {
+          // Try to use the Downloads directory first
+          directory = Directory('/storage/emulated/0/Download');
+          if (!await directory.exists()) {
+            await directory.create(recursive: true);
+          }
+        } catch (e) {
+          print("Error accessing Downloads directory: $e");
+          // Fallback to app's external storage
+          directory = await getExternalStorageDirectory();
+        }
       } else {
         directory = await getApplicationDocumentsDirectory();
       }
@@ -267,13 +511,9 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
         throw Exception("Tidak dapat menemukan direktori penyimpanan");
       }
 
-      // Create downloads folder if it doesn't exist
-      final downloadsDir = Directory('${directory.path}/Downloads');
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-
-      final savePath = '${downloadsDir.path}/$fileName';
+      final savePath = '${directory.path}/$fileName';
+      print("Saving file to: $savePath");
+      
       final file = File(savePath);
 
       // Check if file already exists
@@ -288,10 +528,11 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
         return;
       }
 
-      // Download file
+      // Download file using the correct URL
       final dio = Dio();
-      final baseUrl = "http://192.168.206.227:8080/";
-      final fileUrl = '$baseUrl$filePath';
+      final fileUrl = SubmitService.getDownloadUrl(filePath);
+
+      print('Downloading file from: $fileUrl');
 
       await dio.download(
         fileUrl,

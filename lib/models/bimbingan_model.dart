@@ -37,26 +37,34 @@ class Bimbingan {
   });
 
   factory Bimbingan.fromJson(Map<String, dynamic> json) {
+    // Parse dates and ensure they're in local time
+    DateTime parseDateTime(String? dateStr) {
+      if (dateStr == null) return DateTime.now();
+      
+      // Parse the ISO date string to DateTime
+      DateTime parsedDate = DateTime.parse(dateStr);
+      
+      // Convert to local time if it's in UTC
+      if (dateStr.endsWith('Z') || !dateStr.contains('+')) {
+        parsedDate = parsedDate.toLocal();
+        print('Converting UTC time to local: $dateStr -> ${parsedDate.toString()}');
+      }
+      
+      return parsedDate;
+    }
+
     return Bimbingan(
       id: json['id'] ?? 0,
       kelompokId: json['kelompok_id'] ?? 0,
       userId: json['user_id'] ?? 0,
       keperluan: json['keperluan'] ?? '',
-      rencanaMulai: json['rencana_mulai'] != null
-          ? DateTime.parse(json['rencana_mulai'])
-          : DateTime.now(),
-      rencanaSelesai: json['rencana_selesai'] != null
-          ? DateTime.parse(json['rencana_selesai'])
-          : DateTime.now(),
+      rencanaMulai: parseDateTime(json['rencana_mulai']),
+      rencanaSelesai: parseDateTime(json['rencana_selesai']),
       ruanganId: json['ruangan_id'] ?? 0,
       status: json['status'] ?? 'menunggu',
       hasilBimbingan: json['hasil_bimbingan'] ?? '',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+      createdAt: parseDateTime(json['created_at']),
+      updatedAt: parseDateTime(json['updated_at']),
       kelompok: json['kelompok'] != null
           ? KelompokMahasiswa.fromJson(json['kelompok'])
           : null,
@@ -67,20 +75,22 @@ class Bimbingan {
   }
 
   Map<String, dynamic> toJson() {
+    // Always send dates in UTC format to the server
     return {
       'keperluan': keperluan,
-      'rencana_mulai': rencanaMulai.toIso8601String(),
-      'rencana_selesai': rencanaSelesai.toIso8601String(),
+      'rencana_mulai': rencanaMulai.toUtc().toIso8601String(),
+      'rencana_selesai': rencanaSelesai.toUtc().toIso8601String(),
       'ruangan_id': ruanganId,
     };
   }
 
-  String getFormattedDate() => DateFormat('dd MMM yyyy').format(rencanaMulai);
-  String getFormattedTime() => DateFormat('HH:mm').format(rencanaMulai);
+  // Always format dates in local time for display
+  String getFormattedDate() => DateFormat('dd MMM yyyy').format(rencanaMulai.toLocal());
+  String getFormattedTime() => DateFormat('HH:mm').format(rencanaMulai.toLocal());
   String getFormattedDateTime() =>
-      DateFormat('dd MMM yyyy • HH:mm').format(rencanaMulai);
+      DateFormat('dd MMM yyyy • HH:mm').format(rencanaMulai.toLocal());
   String getDuration() =>
-      '${DateFormat('HH:mm').format(rencanaMulai)} - ${DateFormat('HH:mm').format(rencanaSelesai)}';
+      '${DateFormat('HH:mm').format(rencanaMulai.toLocal())} - ${DateFormat('HH:mm').format(rencanaSelesai.toLocal())}';
 
   Color getStatusColor() {
     switch (status.toLowerCase()) {

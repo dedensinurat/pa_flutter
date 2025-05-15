@@ -20,12 +20,22 @@ class BimbinganService {
       throw Exception("Token tidak ditemukan, silakan login kembali");
     }
 
+    // Ensure we're sending UTC time to the server
+    final utcRencanaMulai = rencanaMulai.toUtc();
+    final utcRencanaSelesai = rencanaSelesai.toUtc();
+    
     final body = {
       "keperluan": keperluan,
-      "rencana_mulai": rencanaMulai.toUtc().toIso8601String(),
-      "rencana_selesai": rencanaSelesai.toUtc().toIso8601String(),
+      "rencana_mulai": utcRencanaMulai.toIso8601String(),
+      "rencana_selesai": utcRencanaSelesai.toIso8601String(),
       "ruangan_id": ruanganId,
     };
+
+    print("Sending bimbingan request with times:");
+    print("Original rencanaMulai: ${rencanaMulai.toString()}");
+    print("UTC rencanaMulai: ${utcRencanaMulai.toIso8601String()}");
+    print("Original rencanaSelesai: ${rencanaSelesai.toString()}");
+    print("UTC rencanaSelesai: ${utcRencanaSelesai.toIso8601String()}");
 
     try {
       final response = await http.post(
@@ -82,7 +92,18 @@ class BimbinganService {
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> jsonList = responseData['data'];
-          return jsonList.map((json) => Bimbingan.fromJson(json)).toList();
+          final bimbingans = jsonList.map((json) => Bimbingan.fromJson(json)).toList();
+          
+          // Print received times for debugging
+          for (var bimbingan in bimbingans) {
+            print("Received bimbingan: ${bimbingan.id}");
+            print("  rencanaMulai (original): ${bimbingan.rencanaMulai}");
+            print("  rencanaMulai (local): ${bimbingan.rencanaMulai.toLocal()}");
+            print("  rencanaSelesai (original): ${bimbingan.rencanaSelesai}");
+            print("  rencanaSelesai (local): ${bimbingan.rencanaSelesai.toLocal()}");
+          }
+          
+          return bimbingans;
         } else {
           throw Exception("Format respons tidak sesuai");
         }

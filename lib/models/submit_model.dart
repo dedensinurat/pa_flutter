@@ -16,7 +16,7 @@ class Submit {
   // Relasi
   final Prodi? prodi;
   final KategoriPA? kategoriPA;
-  final TahunAjaran? tahunMasuk;
+  final TahunMasuk? tahunMasuk;
   final List<PengumpulanTugas>? pengumpulanTugas;
   
   // Derived fields for UI convenience
@@ -69,19 +69,19 @@ class Submit {
   });
 
   factory Submit.fromJson(Map<String, dynamic> json) {
-    // Debug print to see the raw JSON
     print('Parsing Submit from JSON: ${json.keys}');
     
     try {
+      // Handle different field naming conventions between backend and frontend
       return Submit(
         id: json['id'] ?? 0,
         userId: json['user_id'] ?? 0,
-        judulTugas: json['judul_tugas'] ?? '',
-        deskripsiTugas: json['deskripsi_tugas'] ?? '',
+        judulTugas: json['judul_tugas'] ?? json['judul'] ?? '',
+        deskripsiTugas: json['deskripsi_tugas'] ?? json['instruksi'] ?? '',
         kpaId: json['kpa_id'] ?? 0,
         prodiId: json['prodi_id'] ?? 0,
         tmId: json['tm_id'] ?? 0,
-        tanggalPengumpulan: json['tanggal_pengumpulan'] ?? '',
+        tanggalPengumpulan: json['tanggal_pengumpulan'] ?? json['batas'] ?? '',
         file: json['file'] ?? '',
         status: json['status'] ?? 'berlangsung',
         kategoriTugas: json['kategori_tugas'] ?? 'Tugas',
@@ -89,7 +89,7 @@ class Submit {
         updatedAt: json['updated_at'],
         prodi: json['prodi'] != null ? Prodi.fromJson(json['prodi']) : null,
         kategoriPA: json['kategori_pa'] != null ? KategoriPA.fromJson(json['kategori_pa']) : null,
-        tahunMasuk: json['tahun_masuk'] != null ? TahunAjaran.fromJson(json['tahun_masuk']) : null,
+        tahunMasuk: json['tahun_masuk'] != null ? TahunMasuk.fromJson(json['tahun_masuk']) : null,
         pengumpulanTugas: json['pengumpulan_tugas'] != null 
             ? (json['pengumpulan_tugas'] as List).map((item) => PengumpulanTugas.fromJson(item)).toList()
             : null,
@@ -145,7 +145,6 @@ class PengumpulanTugas {
   });
 
   factory PengumpulanTugas.fromJson(Map<String, dynamic> json) {
-    // Debug print to see the raw JSON
     print('Parsing PengumpulanTugas from JSON: ${json.keys}');
     
     try {
@@ -257,32 +256,32 @@ class KategoriPA {
   }
 }
 
-class TahunAjaran {
+class TahunMasuk {
   final int id;
-  final String tahunAjaran;
+  final String tahunMasuk;
   final String status;
   final String? createdAt;
   final String? updatedAt;
 
-  TahunAjaran({
+  TahunMasuk({
     required this.id,
-    required this.tahunAjaran,
+    required this.tahunMasuk,
     required this.status,
     this.createdAt,
     this.updatedAt,
   });
 
-  factory TahunAjaran.fromJson(Map<String, dynamic> json) {
+  factory TahunMasuk.fromJson(Map<String, dynamic> json) {
     try {
-      return TahunAjaran(
+      return TahunMasuk(
         id: json['id'] ?? 0,
-        tahunAjaran: json['tahun_ajaran'] ?? '',
+        tahunMasuk: json['tahun_masuk'] ?? '',
         status: json['status'] ?? 'Aktif',
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
       );
     } catch (e) {
-      print('Error parsing TahunAjaran: $e');
+      print('Error parsing TahunMasuk: $e');
       rethrow;
     }
   }
@@ -290,7 +289,7 @@ class TahunAjaran {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'tahun_ajaran': tahunAjaran,
+      'tahun_masuk': tahunMasuk,
       'status': status,
       'created_at': createdAt,
       'updated_at': updatedAt,
