@@ -6,7 +6,11 @@ import '../models/submit_model.dart';
 import '../utils/api_constants.dart';
 
 class SubmitService {
+<<<<<<< Updated upstream
   static const Duration timeoutDuration = Duration(seconds: 60); // Increased timeout
+=======
+  static const String baseUrl = "http://192.168.189.83:8080";
+>>>>>>> Stashed changes
 
   // Method to fetch all assignments
   static Future<List<Submit>> fetchSubmits() async {
@@ -32,6 +36,7 @@ class SubmitService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
+<<<<<<< Updated upstream
         
         if (responseData['status'] == 'success') {
           // Check if user has a kelompok
@@ -53,6 +58,18 @@ class SubmitService {
             print('No assignments data in response');
             return [];
           }
+=======
+
+        // Check if the user doesn't have a group yet
+        if (responseData['status'] == 'no_group') {
+          throw NoGroupException(
+              "Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.");
+        }
+
+        if (responseData.containsKey('data') && responseData['data'] is List) {
+          List<dynamic> body = responseData['data'];
+          return body.map((e) => Submit.fromJson(e)).toList();
+>>>>>>> Stashed changes
         } else {
           print('Error in response data: ${responseData['message']}');
           throw Exception(responseData['message'] ?? 'Gagal mengambil data tugas');
@@ -62,12 +79,23 @@ class SubmitService {
         await _refreshToken();
         return fetchSubmits(); // Retry after refreshing token
       } else {
+<<<<<<< Updated upstream
         print('Failed with status code: ${response.statusCode}');
         throw Exception('Failed to load assignments: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching assignments: $e');
       throw Exception('Gagal mengambil data tugas: $e');
+=======
+        throw Exception(
+            "Gagal mengambil data: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      if (e is NoGroupException) {
+        rethrow;
+      }
+      throw Exception("Error: $e");
+>>>>>>> Stashed changes
     }
   }
 
@@ -95,6 +123,7 @@ class SubmitService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
+<<<<<<< Updated upstream
         
         if (responseData['status'] == 'success') {
           // Check if user has a kelompok
@@ -115,6 +144,17 @@ class SubmitService {
             print('No assignment data in response');
             throw Exception('Data tugas tidak ditemukan');
           }
+=======
+
+        // Check if the user doesn't have a group yet
+        if (responseData['status'] == 'no_group') {
+          throw NoGroupException(
+              "Anda belum tergabung dalam kelompok. Silakan hubungi dosen untuk bergabung ke kelompok.");
+        }
+
+        if (responseData.containsKey('data')) {
+          return Submit.fromJson(responseData['data']);
+>>>>>>> Stashed changes
         } else {
           print('Error in response data: ${responseData['message']}');
           throw Exception(responseData['message'] ?? 'Gagal mengambil data tugas');
@@ -124,18 +164,30 @@ class SubmitService {
         await _refreshToken();
         return fetchSubmitById(id); // Retry after refreshing token
       } else {
+<<<<<<< Updated upstream
         print('Failed with status code: ${response.statusCode}');
         throw Exception('Failed to load assignment: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching assignment: $e');
       throw Exception('Gagal mengambil data tugas: $e');
+=======
+        throw Exception(
+            "Gagal mengambil detail submitan: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      if (e is NoGroupException) {
+        rethrow;
+      }
+      throw Exception("Error: $e");
+>>>>>>> Stashed changes
     }
   }
 
   // Method to upload a submit file
   static Future<String> uploadSubmit(int tugasId, String filePath) async {
     try {
+<<<<<<< Updated upstream
       print('Uploading file for task ID: $tugasId');
       print('File path: $filePath');
       
@@ -163,6 +215,11 @@ class SubmitService {
       final request = http.MultipartRequest('POST', uri);
 
       // Add the authorization header
+=======
+      final uri = Uri.parse('$baseUrl/pengumpulan/$tugasId/upload');
+      final request = http.MultipartRequest('POST', uri);
+
+>>>>>>> Stashed changes
       request.headers['Authorization'] = 'Bearer $token';
       
       // Add the file to the request
@@ -209,6 +266,7 @@ class SubmitService {
   // Method to update an existing submission
   static Future<String> updateSubmit(int tugasId, String filePath) async {
     try {
+<<<<<<< Updated upstream
       print('Updating submission for task ID: $tugasId');
       print('File path: $filePath');
       
@@ -236,6 +294,11 @@ class SubmitService {
       final request = http.MultipartRequest('PUT', uri);
 
       // Add the authorization header
+=======
+      final uri = Uri.parse('$baseUrl/pengumpulan/$tugasId/update');
+      final request = http.MultipartRequest('PUT', uri);
+
+>>>>>>> Stashed changes
       request.headers['Authorization'] = 'Bearer $token';
       
       // Add the file to the request
@@ -279,6 +342,7 @@ class SubmitService {
     }
   }
 
+<<<<<<< Updated upstream
   static Future<void> _refreshToken() async {
     try {
       print('Refreshing token');
@@ -313,3 +377,13 @@ class SubmitService {
     print('All caches cleared');
   }
 }
+=======
+// Custom exception for no group case
+class NoGroupException implements Exception {
+  final String message;
+  NoGroupException(this.message);
+
+  @override
+  String toString() => message;
+}
+>>>>>>> Stashed changes

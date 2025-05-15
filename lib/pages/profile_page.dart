@@ -6,10 +6,9 @@ import 'package:flutter_artefak/pages/setting_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_artefak/providers/theme_provider.dart';
 import 'package:flutter_artefak/providers/language_provider.dart';
-import 'dart:math' as math;
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();

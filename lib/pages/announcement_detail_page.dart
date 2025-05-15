@@ -10,9 +10,9 @@ class AnnouncementDetailPage extends StatefulWidget {
   final int announcementId;
 
   const AnnouncementDetailPage({
-    Key? key,
+    super.key,
     required this.announcementId,
-  }) : super(key: key);
+  });
 
   @override
   State<AnnouncementDetailPage> createState() => _AnnouncementDetailPageState();
@@ -20,6 +20,7 @@ class AnnouncementDetailPage extends StatefulWidget {
 
 class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
   late Future<Announcement> _announcementFuture;
+  @override
   bool mounted = true;
   bool _isLoading = true;
 

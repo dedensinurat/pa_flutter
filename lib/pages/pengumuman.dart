@@ -7,7 +7,7 @@ import 'announcement_detail_page.dart';
 import 'package:shimmer/shimmer.dart';
 
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({Key? key}) : super(key: key);
+  const NotificationPage({super.key});
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();
