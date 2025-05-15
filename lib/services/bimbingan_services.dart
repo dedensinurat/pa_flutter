@@ -6,11 +6,6 @@ import '../models/ruangan_model.dart';
 import '../utils/api_constants.dart';
 
 class BimbinganService {
-<<<<<<< Updated upstream
-=======
-  static const String baseUrl = "http://192.168.189.83:8080";
-
->>>>>>> Stashed changes
   // Kirim request bimbingan baru
   static Future<bool> create({
     required String keperluan,

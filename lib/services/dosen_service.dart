@@ -4,14 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api_constants.dart';
 
 class DosenService {
-<<<<<<< Updated upstream
-=======
-  static const String baseUrl = "https://cis-dev.del.ac.id/api";
-  
-  // Cache for dosen data to avoid repeated API calls
-  static final Map<int, String> _dosenCache = {};
-
->>>>>>> Stashed changes
   // Get dosen name by ID
   static Future<String> getDosenName(int id) async {
     final prefs = await SharedPreferences.getInstance();

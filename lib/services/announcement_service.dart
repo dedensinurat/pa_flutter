@@ -5,11 +5,6 @@ import '../models/announcement_model.dart';
 import '../utils/api_constants.dart';
 
 class AnnouncementService {
-<<<<<<< Updated upstream
-=======
-  static const String baseUrl = 'http://192.168.189.83:8080';
-
->>>>>>> Stashed changes
   // Get all announcements
   static Future<List<Announcement>> getAnnouncements() async {
     final prefs = await SharedPreferences.getInstance();

@@ -128,45 +128,4 @@ class BottomNavBar extends StatelessWidget {
       ),
     );
   }
-<<<<<<< Updated upstream
 }
-=======
-}
-
-void main() {
-  runApp(
-    MaterialApp(
-      home: GradientNavExample(),
-    ),
-  );
-}
-
-class GradientNavExample extends StatefulWidget {
-  const GradientNavExample({super.key});
-
-  @override
-  _GradientNavExampleState createState() => _GradientNavExampleState();
-}
-
-class _GradientNavExampleState extends State<GradientNavExample> {
-  int _currentIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: Center(
-        child: Text('Page $_currentIndex'),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
-    );
-  }
-}
->>>>>>> Stashed changes

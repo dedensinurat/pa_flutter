@@ -1,445 +1,265 @@
 import 'package:flutter/material.dart';
 import '../models/jadwal_model.dart';
 import '../services/jadwal_service.dart';
-import '../pages/jadwal_detail_page.dart';
 
-<<<<<<< Updated upstream
-class JadwalListWidget extends StatefulWidget {
-  final int maxItems;
-  final bool showTitle;
-  final VoidCallback? onViewAllPressed;
-  
-  const JadwalListWidget({
+class JadwalDetailPage extends StatefulWidget {
+  final int jadwalId;
+
+  const JadwalDetailPage({
     Key? key,
-    this.maxItems = 3,
-    this.showTitle = true,
-    this.onViewAllPressed,
+    required this.jadwalId,
   }) : super(key: key);
-=======
-  class JadwalListWidget extends StatefulWidget {
-    final int maxItems;
-    final bool showTitle;
-    final VoidCallback? onViewAllPressed;
-    
-    const JadwalListWidget({
-      super.key,
-      this.maxItems = 3,
-      this.showTitle = true,
-      this.onViewAllPressed,
-    });
->>>>>>> Stashed changes
 
   @override
-  State<JadwalListWidget> createState() => _JadwalListWidgetState();
+  State<JadwalDetailPage> createState() => _JadwalDetailPageState();
 }
 
-class _JadwalListWidgetState extends State<JadwalListWidget> {
-  late Future<List<Jadwal>> _futureJadwal;
+class _JadwalDetailPageState extends State<JadwalDetailPage> {
+  late Future<Jadwal> _jadwalFuture;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _futureJadwal = _fetchJadwal();
+    _loadJadwal();
   }
 
-  Future<List<Jadwal>> _fetchJadwal() async {
+  void _loadJadwal() {
     setState(() {
       _isLoading = true;
-    });
-    
-    try {
-      final jadwals = await JadwalService.getJadwal();
-      setState(() {
-        _isLoading = false;
-      });
-      return jadwals;
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      throw e;
-    }
-  }
-
-  Future<void> _refreshData() async {
-    setState(() {
-      _futureJadwal = _fetchJadwal();
+      _jadwalFuture = JadwalService.getJadwalById(widget.jadwalId);
     });
   }
 
-<<<<<<< Updated upstream
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.showTitle)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-=======
-    Future<List<Jadwal>> _fetchJadwal() async {
-      setState(() {
-        _isLoading = true;
-      });
-      
-      try {
-        final jadwals = await JadwalService.getJadwal();
-        setState(() {
-          _isLoading = false;
-        });
-        return jadwals;
-      } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
-        rethrow;
-      }
-    }
-
-    Future<void> _refreshData() async {
-      setState(() {
-        _futureJadwal = _fetchJadwal();
-      });
-    }
-
-    @override
-    Widget build(BuildContext context) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.showTitle)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detail Jadwal'),
+      ),
+      body: FutureBuilder<Jadwal>(
+        future: _jadwalFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadJadwal,
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            );
+          } else if (snapshot.hasData) {
+            final jadwal = snapshot.data!;
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Status card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: jadwal.getStatusColor().withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: jadwal.getStatusColor().withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Status: ${jadwal.getStatusText()}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: jadwal.getStatusColor(),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Seminar ${jadwal.kelompokNama ?? 'Kelompok ${jadwal.kelompokId}'}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Details section
                   const Text(
-                    'Jadwal Seminar',
+                    'Informasi Jadwal',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3748),
                     ),
                   ),
-                  const Spacer(),
-                  if (widget.onViewAllPressed != null)
-                    TextButton(
-                      onPressed: widget.onViewAllPressed,
-                      child: const Text('Lihat Semua'),
-                    ),
-                ],
-              ),
-            ),
-          
-          FutureBuilder<List<Jadwal>>(
-            future: _futureJadwal,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting && _isLoading) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  
+                  _buildDetailItem(
+                    icon: Icons.calendar_today,
+                    title: 'Tanggal',
+                    value: jadwal.getFormattedDate(),
                   ),
-                );
-              } else if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Error: ${snapshot.error}',
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: _refreshData,
-                          child: const Text('Coba Lagi'),
-                        ),
-                      ],
-                    ),
+                  
+                  _buildDetailItem(
+                    icon: Icons.access_time,
+                    title: 'Waktu',
+                    value: jadwal.getFormattedTime(),
                   ),
-                );
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Belum ada jadwal',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF718096),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: _refreshData,
-                          child: const Text('Muat Ulang'),
-                        ),
-                      ],
-                    ),
+                  
+                  _buildDetailItem(
+                    icon: Icons.location_on,
+                    title: 'Ruangan',
+                    value: jadwal.ruangan,
                   ),
-                );
-              }
-              
-              // Limit the number of items to display
-              final jadwals = snapshot.data!;
-              final displayedJadwals = jadwals.length > widget.maxItems 
-                  ? jadwals.sublist(0, widget.maxItems) 
-                  : jadwals;
-              
-              return Column(
-                children: [
-                  ...displayedJadwals.map((jadwal) => _buildJadwalItem(context, jadwal)),
-                  if (jadwals.length > widget.maxItems && widget.onViewAllPressed != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: TextButton(
-                        onPressed: widget.onViewAllPressed,
-                        child: Text('Lihat ${jadwals.length - widget.maxItems} lainnya'),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      );
-    }
-
-    Widget _buildJadwalItem(BuildContext context, Jadwal jadwal) {
-      final isUpcoming = jadwal.isUpcoming();
-      final statusColor = jadwal.getStatusColor();
-      
-      return Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade200),
-        ),
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => JadwalDetailPage(jadwalId: jadwal.id),
-              ),
-            ).then((_) => _refreshData());
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
->>>>>>> Stashed changes
-            child: Row(
-              children: [
-                const Text(
-                  'Jadwal Seminar',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D3748),
-                  ),
-                ),
-                const Spacer(),
-                if (widget.onViewAllPressed != null)
-                  TextButton(
-                    onPressed: widget.onViewAllPressed,
-                    child: const Text('Lihat Semua'),
-                  ),
-              ],
-            ),
-          ),
-        
-        FutureBuilder<List<Jadwal>>(
-          future: _futureJadwal,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && _isLoading) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            } else if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Error: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _refreshData,
-                        child: const Text('Coba Lagi'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Belum ada jadwal',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF718096),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _refreshData,
-                        child: const Text('Muat Ulang'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-            
-            // Limit the number of items to display
-            final jadwals = snapshot.data!;
-            final displayedJadwals = jadwals.length > widget.maxItems 
-                ? jadwals.sublist(0, widget.maxItems) 
-                : jadwals;
-            
-            return Column(
-              children: [
-                ...displayedJadwals.map((jadwal) => _buildJadwalItem(context, jadwal)),
-                if (jadwals.length > widget.maxItems && widget.onViewAllPressed != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: TextButton(
-                      onPressed: widget.onViewAllPressed,
-                      child: Text('Lihat ${jadwals.length - widget.maxItems} lainnya'),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildJadwalItem(BuildContext context, Jadwal jadwal) {
-    final isUpcoming = jadwal.isUpcoming();
-    final statusColor = jadwal.getStatusColor();
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => JadwalDetailPage(jadwalId: jadwal.id),
-            ),
-          ).then((_) => _refreshData());
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  isUpcoming ? Icons.event_available : Icons.event_busy,
-                  color: statusColor,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      jadwal.kelompokNama ?? 'Kelompok ${jadwal.kelompokId}',
-                      style: const TextStyle(
-                        fontSize: 14,
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Examiners section
+                  if (jadwal.penguji1Nama != null || jadwal.penguji2Nama != null) ...[
+                    const Text(
+                      'Penguji',
+                      style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.access_time,
-                          size: 12,
-                          color: Color(0xFF718096),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${jadwal.getFormattedDate()} ${jadwal.getFormattedTime()}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF718096),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on,
-                          size: 12,
-                          color: Color(0xFF718096),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          jadwal.ruangan,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF718096),
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 16),
+                    
+                    if (jadwal.penguji1Nama != null)
+                      _buildExaminerItem(
+                        number: 1,
+                        name: jadwal.penguji1Nama!,
+                      ),
+                    
+                    if (jadwal.penguji2Nama != null)
+                      _buildExaminerItem(
+                        number: 2,
+                        name: jadwal.penguji2Nama!,
+                      ),
                   ],
-                ),
+                ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  jadwal.getStatusText(),
+            );
+          } else {
+            return const Center(
+              child: Text('Jadwal tidak ditemukan'),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDetailItem({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
+                    fontSize: 14,
+                    color: Colors.grey[600],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExaminerItem({
+    required int number,
+    required String name,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                '$number',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Penguji $number',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

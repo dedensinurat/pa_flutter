@@ -4,112 +4,130 @@ import 'package:intl/intl.dart';
 class Jadwal {
   final int id;
   final int kelompokId;
-  final String ruangan;
-  final DateTime waktu;
-  final DateTime? waktuSelesai;
-  final int userId;
-  final int ruanganId;
-  final int penguji1;
-  final int penguji2;
   final String? kelompokNama;
-  final String? judul;
-  String? penguji1Nama;
-  String? penguji2Nama;
+  final String? tanggal;
+  final String? waktuMulai;
+  final String? waktuSelesai;
+  final String ruangan;
+  final int? penguji1;
+  final int? penguji2;
+  final String? penguji1Nama;
+  final String? penguji2Nama;
+  final String status;
+  final String? createdAt;
+  final String? updatedAt;
+  final int? userId;
+  final int? ruanganId;
 
   Jadwal({
     required this.id,
     required this.kelompokId,
-    required this.ruangan,
-    required this.waktu,
-    this.waktuSelesai,
-    required this.userId,
-    required this.ruanganId,
-    required this.penguji1,
-    required this.penguji2,
     this.kelompokNama,
-    this.judul,
+    this.tanggal,
+    this.waktuMulai,
+    this.waktuSelesai,
+    required this.ruangan,
+    this.penguji1,
+    this.penguji2,
     this.penguji1Nama,
     this.penguji2Nama,
+    this.status = 'pending',
+    this.createdAt,
+    this.updatedAt,
+    this.userId,
+    this.ruanganId,
   });
 
   factory Jadwal.fromJson(Map<String, dynamic> json) {
-    print('Parsing jadwal JSON: $json');
+    // Extract date and time from waktu_mulai and waktu_selesai
+    String? waktuMulai = json['waktu_mulai'];
+    String? waktuSelesai = json['waktu_selesai'];
+    String? tanggal;
+    
+    // If waktu_mulai exists, use it for the date
+    if (waktuMulai != null) {
+      try {
+        tanggal = waktuMulai;
+      } catch (e) {
+        print('Error parsing waktu_mulai: $e');
+      }
+    }
+    
     return Jadwal(
-      id: json['id'],
-      kelompokId: json['kelompok_id'],
-      ruangan: json['ruangan'] ?? '',
-      waktu: DateTime.parse(json['waktu']),
-      waktuSelesai: json['waktu_selesai'] != null ? DateTime.parse(json['waktu_selesai']) : null,
-      userId: json['user_id'],
-      ruanganId: json['ruangan_id'] ?? 0,
-      penguji1: json['penguji1'] ?? 0,
-      penguji2: json['penguji2'] ?? 0,
+      id: json['id'] ?? 0,
+      kelompokId: json['kelompok_id'] ?? 0,
       kelompokNama: json['kelompok_nama'],
-      judul: json['judul'],
-      // These will be filled in later by the service
+      tanggal: tanggal,
+      waktuMulai: waktuMulai,
+      waktuSelesai: waktuSelesai,
+      ruangan: json['ruangan'] ?? '',
+      penguji1: json['penguji1'],
+      penguji2: json['penguji2'],
       penguji1Nama: json['penguji1_nama'],
       penguji2Nama: json['penguji2_nama'],
+      status: json['status'] ?? 'pending',
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+      userId: json['user_id'],
+      ruanganId: json['ruangan_id'],
     );
   }
 
   String getFormattedDate() {
-    return DateFormat('EEEE, d MMMM yyyy').format(waktu);
+    try {
+      if (tanggal == null) return 'Tanggal tidak tersedia';
+      
+      final DateTime date = DateTime.parse(tanggal!);
+      return DateFormat('dd MMMM yyyy').format(date);
+    } catch (e) {
+      print('Error formatting date: $e');
+      return tanggal ?? 'Tanggal tidak tersedia';
+    }
   }
 
   String getFormattedTime() {
-    return DateFormat('HH:mm').format(waktu);
-  }
-
-  String getDuration() {
-    if (waktuSelesai == null) return getFormattedTime();
-    return '${DateFormat('HH:mm').format(waktu)} - ${DateFormat('HH:mm').format(waktuSelesai!)}';
-  }
-
-  bool isUpcoming() {
-    return waktu.isAfter(DateTime.now());
-  }
-
-  int getDaysRemaining() {
-    final now = DateTime.now();
-    return waktu.difference(now).inDays;
-  }
-  
-  Color getStatusColor() {
-    if (!isUpcoming()) {
-      return Colors.grey;
-    } else if (getDaysRemaining() <= 1) {
-      return Colors.red;
-    } else if (getDaysRemaining() <= 3) {
-      return Colors.orange;
-    } else {
-      return Colors.green;
+    if (waktuMulai == null || waktuSelesai == null) {
+      return 'Waktu tidak tersedia';
+    }
+    
+    try {
+      final DateTime start = DateTime.parse(waktuMulai!);
+      final DateTime end = DateTime.parse(waktuSelesai!);
+      
+      return '${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}';
+    } catch (e) {
+      print('Error formatting time: $e');
+      return '$waktuMulai - $waktuSelesai';
     }
   }
-  
+
   String getStatusText() {
-    if (!isUpcoming()) {
-      return 'Selesai';
-    } else if (getDaysRemaining() <= 0) {
-      return 'Hari ini';
-    } else {
-      return '${getDaysRemaining()} hari lagi';
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Menunggu';
+      case 'approved':
+        return 'Disetujui';
+      case 'completed':
+        return 'Selesai';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return status;
     }
   }
-}
 
-class Ruangan {
-  final int id;
-  final String nama;
-
-  Ruangan({
-    required this.id,
-    required this.nama,
-  });
-
-  factory Ruangan.fromJson(Map<String, dynamic> json) {
-    return Ruangan(
-      id: json['id'],
-      nama: json['ruangan'],
-    );
+  Color getStatusColor() {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'approved':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

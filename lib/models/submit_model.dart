@@ -1,15 +1,15 @@
 class Submit {
   final int id;
-  final int userId;
+  final int? userId;
   final String judulTugas;
   final String deskripsiTugas;
-  final int kpaId;
-  final int prodiId;
-  final int tmId;
+  final int? kpaId;
+  final int? prodiId;
+  final int? tmId;
   final String tanggalPengumpulan;
   final String file;
-  final String status;
-  final String kategoriTugas;
+  final String? status;
+  final String? kategoriTugas;
   final String? createdAt;
   final String? updatedAt;
 
@@ -20,175 +20,177 @@ class Submit {
   final List<PengumpulanTugas>? pengumpulanTugas;
   
   // Derived fields for UI convenience
-  String get submissionStatus {
-    if (pengumpulanTugas != null && pengumpulanTugas!.isNotEmpty) {
-      return pengumpulanTugas![0].status;
-    }
-    return 'Belum';
-  }
-  
-  String get submissionFile {
-    if (pengumpulanTugas != null && pengumpulanTugas!.isNotEmpty) {
-      return pengumpulanTugas![0].filePath;
-    }
-    return '';
-  }
-  
-  String? get submissionDate {
-    if (pengumpulanTugas != null && pengumpulanTugas!.isNotEmpty) {
-      return pengumpulanTugas![0].waktuSubmit;
-    }
-    return null;
-  }
-
-  // Check if the submission has a valid file
-  bool get hasValidSubmission {
-    return pengumpulanTugas != null && 
-           pengumpulanTugas!.isNotEmpty && 
-           pengumpulanTugas![0].filePath.isNotEmpty;
-  }
+  final bool hasValidSubmission;
+  final String submissionStatus;
+  final String? submissionDate;
+  final String submissionFile;
 
   Submit({
     required this.id,
-    required this.userId,
+    this.userId,
     required this.judulTugas,
     required this.deskripsiTugas,
-    required this.kpaId,
-    required this.prodiId,
-    required this.tmId,
+    this.kpaId,
+    this.prodiId,
+    this.tmId,
     required this.tanggalPengumpulan,
     required this.file,
-    this.status = 'berlangsung',
-    this.kategoriTugas = 'Tugas',
+    this.status,
+    this.kategoriTugas,
     this.createdAt,
     this.updatedAt,
     this.prodi,
     this.kategoriPA,
     this.tahunMasuk,
     this.pengumpulanTugas,
+    this.hasValidSubmission = false,
+    this.submissionStatus = '',
+    this.submissionDate,
+    this.submissionFile = '',
   });
 
   factory Submit.fromJson(Map<String, dynamic> json) {
-    print('Parsing Submit from JSON: ${json.keys}');
-    
     try {
-      // Handle different field naming conventions between backend and frontend
+      print('Parsing Submit from JSON: ${json.keys}');
+      
+      // Parse pengumpulan_tugas if it exists
+      List<PengumpulanTugas>? pengumpulanList;
+      bool hasSubmission = false;
+      String submissionStatus = '';
+      String submissionDate = '';
+      String submissionFile = '';
+
+      if (json['pengumpulan_tugas'] != null) {
+        try {
+          pengumpulanList = (json['pengumpulan_tugas'] as List)
+              .map((item) => PengumpulanTugas.fromJson(item))
+              .toList();
+          
+          // Check if there's a valid submission
+          if (pengumpulanList.isNotEmpty) {
+            hasSubmission = true;
+            submissionStatus = pengumpulanList[0].status ?? '';
+            submissionDate = pengumpulanList[0].waktuSubmit ?? '';
+            submissionFile = pengumpulanList[0].filePath ?? '';
+          }
+        } catch (e) {
+          print('Error parsing pengumpulan_tugas: $e');
+        }
+      }
+
+      // Parse kategori_pa
+      KategoriPA? kategoriPA;
+      if (json['kategori_pa'] != null) {
+        try {
+          kategoriPA = KategoriPA.fromJson(json['kategori_pa']);
+        } catch (e) {
+          print('Error parsing kategori_pa: $e');
+        }
+      }
+
+      // Parse prodi
+      Prodi? prodi;
+      if (json['prodi'] != null) {
+        try {
+          prodi = Prodi.fromJson(json['prodi']);
+        } catch (e) {
+          print('Error parsing prodi: $e');
+        }
+      }
+
+      // Parse tahun_masuk
+      TahunMasuk? tahunMasuk;
+      if (json['tahun_masuk'] != null) {
+        try {
+          tahunMasuk = TahunMasuk.fromJson(json['tahun_masuk']);
+        } catch (e) {
+          print('Error parsing tahun_masuk: $e');
+        }
+      }
+
       return Submit(
         id: json['id'] ?? 0,
-        userId: json['user_id'] ?? 0,
-        judulTugas: json['judul_tugas'] ?? json['judul'] ?? '',
-        deskripsiTugas: json['deskripsi_tugas'] ?? json['instruksi'] ?? '',
-        kpaId: json['kpa_id'] ?? 0,
-        prodiId: json['prodi_id'] ?? 0,
-        tmId: json['tm_id'] ?? 0,
-        tanggalPengumpulan: json['tanggal_pengumpulan'] ?? json['batas'] ?? '',
+        userId: json['user_id'],
+        judulTugas: json['judul_tugas'] ?? '',
+        deskripsiTugas: json['deskripsi_tugas'] ?? '',
+        kpaId: json['kpa_id'],
+        prodiId: json['prodi_id'],
+        tmId: json['tm_id'],
+        tanggalPengumpulan: json['tanggal_pengumpulan'] ?? '',
         file: json['file'] ?? '',
-        status: json['status'] ?? 'berlangsung',
-        kategoriTugas: json['kategori_tugas'] ?? 'Tugas',
+        status: json['status'],
+        kategoriTugas: json['kategori_tugas'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
-        prodi: json['prodi'] != null ? Prodi.fromJson(json['prodi']) : null,
-        kategoriPA: json['kategori_pa'] != null ? KategoriPA.fromJson(json['kategori_pa']) : null,
-        tahunMasuk: json['tahun_masuk'] != null ? TahunMasuk.fromJson(json['tahun_masuk']) : null,
-        pengumpulanTugas: json['pengumpulan_tugas'] != null 
-            ? (json['pengumpulan_tugas'] as List).map((item) => PengumpulanTugas.fromJson(item)).toList()
-            : null,
+        prodi: prodi,
+        kategoriPA: kategoriPA,
+        tahunMasuk: tahunMasuk,
+        pengumpulanTugas: pengumpulanList,
+        hasValidSubmission: hasSubmission,
+        submissionStatus: submissionStatus,
+        submissionDate: submissionDate,
+        submissionFile: submissionFile,
       );
     } catch (e) {
-      print('Error parsing Submit: $e');
+      print('Error in Submit.fromJson: $e');
       rethrow;
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'user_id': userId,
-      'judul_tugas': judulTugas,
-      'deskripsi_tugas': deskripsiTugas,
-      'kpa_id': kpaId,
-      'prodi_id': prodiId,
-      'tm_id': tmId,
-      'tanggal_pengumpulan': tanggalPengumpulan,
-      'file': file,
-      'status': status,
-      'kategori_tugas': kategoriTugas,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'prodi': prodi?.toJson(),
-      'kategori_pa': kategoriPA?.toJson(),
-      'tahun_masuk': tahunMasuk?.toJson(),
-      'pengumpulan_tugas': pengumpulanTugas?.map((item) => item.toJson()).toList(),
-    };
   }
 }
 
 class PengumpulanTugas {
-  final int id;
-  final int kelompokId;
-  final int tugasId;
-  final String waktuSubmit;
-  final String filePath;
-  final String status;
+  final int? id;
+  final int? kelompokId;
+  final int? tugasId;
+  final String? waktuSubmit;
+  final String? filePath;
+  final String? status;
   final String? createdAt;
   final String? updatedAt;
 
   PengumpulanTugas({
-    required this.id,
-    required this.kelompokId,
-    required this.tugasId,
-    required this.waktuSubmit,
-    required this.filePath,
-    this.status = 'Belum',
+    this.id,
+    this.kelompokId,
+    this.tugasId,
+    this.waktuSubmit,
+    this.filePath,
+    this.status,
     this.createdAt,
     this.updatedAt,
   });
 
   factory PengumpulanTugas.fromJson(Map<String, dynamic> json) {
-    print('Parsing PengumpulanTugas from JSON: ${json.keys}');
-    
     try {
+      print('Parsing PengumpulanTugas from JSON: ${json.keys}');
+      
       return PengumpulanTugas(
-        id: json['id'] ?? 0,
-        kelompokId: json['kelompok_id'] ?? 0,
-        tugasId: json['tugas_id'] ?? 0,
-        waktuSubmit: json['waktu_submit'] ?? '',
-        filePath: json['file_path'] ?? '',
-        status: json['status'] ?? 'Belum',
+        id: json['id'],
+        kelompokId: json['kelompok_id'],
+        tugasId: json['tugas_id'],
+        waktuSubmit: json['waktu_submit'],
+        filePath: json['file_path'],
+        status: json['status'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
       );
     } catch (e) {
-      print('Error parsing PengumpulanTugas: $e');
+      print('Error in PengumpulanTugas.fromJson: $e');
       rethrow;
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'kelompok_id': kelompokId,
-      'tugas_id': tugasId,
-      'waktu_submit': waktuSubmit,
-      'file_path': filePath,
-      'status': status,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
   }
 }
 
 class Prodi {
-  final int id;
-  final String namaProdi;
-  final int maksProject;
+  final int? id;
+  final String? namaProdi;
+  final int? maksProject;
   final String? createdAt;
   final String? updatedAt;
 
   Prodi({
-    required this.id,
-    required this.namaProdi,
-    required this.maksProject,
+    this.id,
+    this.namaProdi,
+    this.maksProject,
     this.createdAt,
     this.updatedAt,
   });
@@ -196,38 +198,28 @@ class Prodi {
   factory Prodi.fromJson(Map<String, dynamic> json) {
     try {
       return Prodi(
-        id: json['id'] ?? 0,
-        namaProdi: json['nama_prodi'] ?? '',
-        maksProject: json['maks_project'] ?? 0,
+        id: json['id'],
+        namaProdi: json['nama_prodi'],
+        maksProject: json['maks_project'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
       );
     } catch (e) {
-      print('Error parsing Prodi: $e');
+      print('Error in Prodi.fromJson: $e');
       rethrow;
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'nama_prodi': namaProdi,
-      'maks_project': maksProject,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
   }
 }
 
 class KategoriPA {
-  final int id;
-  final String kategoriPA;
+  final int? id;
+  final String? kategoriPA;
   final String? createdAt;
   final String? updatedAt;
 
   KategoriPA({
-    required this.id,
-    required this.kategoriPA,
+    this.id,
+    this.kategoriPA,
     this.createdAt,
     this.updatedAt,
   });
@@ -235,38 +227,29 @@ class KategoriPA {
   factory KategoriPA.fromJson(Map<String, dynamic> json) {
     try {
       return KategoriPA(
-        id: json['id'] ?? 0,
-        kategoriPA: json['kategori_pa'] ?? '',
+        id: json['id'],
+        kategoriPA: json['kategori_pa'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
       );
     } catch (e) {
-      print('Error parsing KategoriPA: $e');
+      print('Error in KategoriPA.fromJson: $e');
       rethrow;
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'kategori_pa': kategoriPA,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
   }
 }
 
 class TahunMasuk {
-  final int id;
-  final String tahunMasuk;
-  final String status;
+  final int? id;
+  final String? tahunMasuk;
+  final String? status;
   final String? createdAt;
   final String? updatedAt;
 
   TahunMasuk({
-    required this.id,
-    required this.tahunMasuk,
-    required this.status,
+    this.id,
+    this.tahunMasuk,
+    this.status,
     this.createdAt,
     this.updatedAt,
   });
@@ -274,25 +257,15 @@ class TahunMasuk {
   factory TahunMasuk.fromJson(Map<String, dynamic> json) {
     try {
       return TahunMasuk(
-        id: json['id'] ?? 0,
-        tahunMasuk: json['tahun_masuk'] ?? '',
-        status: json['status'] ?? 'Aktif',
+        id: json['id'],
+        tahunMasuk: json['tahun_masuk'],
+        status: json['status'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
       );
     } catch (e) {
-      print('Error parsing TahunMasuk: $e');
+      print('Error in TahunMasuk.fromJson: $e');
       rethrow;
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'tahun_masuk': tahunMasuk,
-      'status': status,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-    };
   }
 }

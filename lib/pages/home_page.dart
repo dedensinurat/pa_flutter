@@ -80,12 +80,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       setState(() {
         _isRefreshing = false;
       });
-<<<<<<< Updated upstream
       print('Error fetching submissions in HomePage: $e');
       throw e;
-=======
-      rethrow;
->>>>>>> Stashed changes
     }
   }
 

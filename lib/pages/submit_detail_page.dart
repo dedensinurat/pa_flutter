@@ -14,8 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
-
-// PDF Viewer Page Component
+// Add this new page for PDF viewing
 class PDFViewerPage extends StatefulWidget {
   final String filePath;
   final String fileName;
@@ -37,19 +36,19 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
       appBar: AppBar(
         title: Text(widget.fileName),
         backgroundColor: Colors.lightBlue.shade300,
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.bookmark),
-        //     onPressed: () {
-        //     },
-        //   ),
-        //   IconButton(
-        //     icon: const Icon(Icons.search),
-        //     onPressed: () {
-              
-        //     },
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bookmark),
+            onPressed: () {
+              _pdfViewerKey.currentState?.openBookmarkView();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -136,11 +135,10 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
   }
 }
 
-// Submit Detail Page Component
 class SubmitDetailPage extends StatefulWidget {
   final Submit submit;
 
-  const SubmitDetailPage({super.key, required this.submit});
+  const SubmitDetailPage({Key? key, required this.submit}) : super(key: key);
 
   @override
   State<SubmitDetailPage> createState() => _SubmitDetailPageState();
@@ -273,15 +271,6 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
 
   // Function to handle file opening
   Future<void> _handleFileAction(String filePath) async {
-    final extension = filePath.toLowerCase().split('.').last;
-
-    // For PDF files, directly open the PDF viewer
-    if (extension == 'pdf') {
-      _openPdfViewer(filePath);
-      return;
-    }
-
-    // For other file types, show the action sheet
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -303,7 +292,7 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
               ),
               const SizedBox(height: 20),
               // Only show PDF viewer option for PDF files
-              if (extension == 'pdf')
+              if (filePath.toLowerCase().endsWith('.pdf'))
                 ListTile(
                   leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
                   title: const Text('Buka PDF Viewer'),
@@ -345,24 +334,20 @@ class _SubmitDetailPageState extends State<SubmitDetailPage> {
 
   // New method to open PDF in the built-in viewer
   Future<void> _openPdfViewer(String filePath) async {
-    try {
-      final fileUrl = SubmitService.getFileUrl(filePath);
-      final fileName = _getFileName(filePath);
-      
-      print('Opening PDF viewer with URL: $fileUrl');
-      
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PDFViewerPage(
-            filePath: fileUrl,
-            fileName: fileName,
-          ),
+    final fileUrl = SubmitService.getFileUrl(filePath);
+    final fileName = _getFileName(filePath);
+    
+    print('Opening PDF viewer with URL: $fileUrl');
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PDFViewerPage(
+          filePath: fileUrl,
+          fileName: fileName,
         ),
-      );
-    } catch (e) {
-      _showErrorDialog('Error opening PDF viewer: $e');
-    }
+      ),
+    );
   }
 
   // Open file in browser

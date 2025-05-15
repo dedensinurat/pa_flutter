@@ -9,13 +9,8 @@ class JadwalCard extends StatelessWidget {
   const JadwalCard({
     super.key,
     required this.jadwal,
-<<<<<<< Updated upstream
     this.onRefresh,
-  }) : super(key: key);
-=======
-    required this.onRefresh,
   });
->>>>>>> Stashed changes
 
   @override
   Widget build(BuildContext context) {

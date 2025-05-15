@@ -39,13 +39,6 @@ class ThemeProvider extends ChangeNotifier {
       secondary: const Color(0xFF38B2AC),
       surface: Colors.white,
       error: const Color(0xFFE53E3E),
-<<<<<<< Updated upstream
-=======
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
-      onSurface: const Color(0xFF2D3748),
-      onError: Colors.white,
->>>>>>> Stashed changes
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
@@ -136,13 +129,6 @@ class ThemeProvider extends ChangeNotifier {
       secondary: const Color(0xFF38B2AC),
       surface: const Color(0xFF2D3748),
       error: const Color(0xFFE53E3E),
-<<<<<<< Updated upstream
-=======
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
-      onSurface: Colors.white,
-      onError: Colors.white,
->>>>>>> Stashed changes
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF2D3748),
